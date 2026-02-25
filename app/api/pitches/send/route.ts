@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 
+export const dynamic = "force-dynamic";
+
 function normalizeSmtpHost(host: string): string {
   const h = host.trim().toLowerCase();
   if (h === "smpt.gmail.com") return "smtp.gmail.com";

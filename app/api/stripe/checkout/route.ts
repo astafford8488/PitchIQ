@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
+export const dynamic = "force-dynamic";
+
 function getBaseUrl(request: Request): string {
   try {
     const url = new URL(request.url);

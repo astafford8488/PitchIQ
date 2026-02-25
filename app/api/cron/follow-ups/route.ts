@@ -2,6 +2,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 
+export const dynamic = "force-dynamic";
+
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_PER_RUN = 30;
 

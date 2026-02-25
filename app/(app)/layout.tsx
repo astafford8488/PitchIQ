@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { AccountNav } from "./layout/AccountNav";
 
+export const dynamic = "force-dynamic";
+
 export default async function AppLayout({
   children,
 }: {
@@ -11,6 +13,13 @@ export default async function AppLayout({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("onboarding_completed_at")
+    .eq("id", user.id)
+    .single();
+  if (!profile?.onboarding_completed_at) redirect("/onboarding");
 
   return (
     <div className="min-h-screen flex flex-col">

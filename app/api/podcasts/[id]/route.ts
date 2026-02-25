@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 const ALLOWED_KEYS = ["host_email", "host_name", "contact_url", "website_url"] as const;
 
 export async function PATCH(

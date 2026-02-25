@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import type { PitchStatus } from "@/lib/types";
 
 export async function PATCH(request: Request) {

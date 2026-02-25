@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 const DAILY_CAP = 10;
 
 function buildFallbackPitch(
@@ -9,13 +11,15 @@ function buildFallbackPitch(
   bio: string,
   expertise: string,
   audience: string,
-  credentials: string
+  credentials: string,
+  pastAppearances: string
 ) {
   const parts: string[] = [];
   if (bio) parts.push(bio);
   if (expertise) parts.push(`My expertise: ${expertise}.`);
   if (audience) parts.push(`I typically speak to ${audience}.`);
   if (credentials) parts.push(credentials);
+  if (pastAppearances) parts.push(`I've appeared on ${pastAppearances}.`);
   const bodyText = parts.length > 0 ? parts.join(" ") : "I have relevant experience and think I could add value for your audience.";
   const greeting = p.host_name ? `Hi, ${p.host_name},` : "Hi,";
   const body = `${greeting}\n\nI'd love to be a guest on ${p.title}. ${bodyText}\n\nBest,\n${name}`;
@@ -49,7 +53,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `Daily limit of ${DAILY_CAP} pitches reached` }, { status: 429 });
   }
 
-  const { data: profile } = await supabase.from("profiles").select("full_name, bio, expertise_topics, target_audience, credentials").eq("id", user.id).single();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, bio, expertise_topics, target_audience, credentials, linkedin_url, speaking_topics, past_appearances, book_product_links, goals, vertical_interests")
+    .eq("id", user.id)
+    .single();
 
   const { data: podcasts } = await supabase.from("podcasts").select("id, title, description, category, host_name, topics").in("id", requestedIds);
 
@@ -58,6 +66,12 @@ export async function POST(request: Request) {
   const expertise = profile?.expertise_topics?.trim() || "";
   const audience = profile?.target_audience?.trim() || "";
   const credentials = profile?.credentials?.trim() || "";
+  const linkedin = profile?.linkedin_url?.trim() || "";
+  const speakingTopics = profile?.speaking_topics?.trim() || "";
+  const pastAppearances = profile?.past_appearances?.trim() || "";
+  const bookProductLinks = profile?.book_product_links?.trim() || "";
+  const goals = profile?.goals?.trim() || "";
+  const verticalInterests = profile?.vertical_interests?.trim() || "";
 
   const apiKey = process.env.OPENAI_API_KEY;
   const pitches: { podcast_id: string; subject: string; body: string }[] = [];
@@ -71,7 +85,13 @@ export async function POST(request: Request) {
         bio ? `Bio: ${bio}` : null,
         expertise ? `Expertise/topics: ${expertise}` : null,
         audience ? `Target audience: ${audience}` : null,
-        credentials ? `Credentials (books, awards, past appearances): ${credentials}` : null,
+        credentials ? `Credentials: ${credentials}` : null,
+        linkedin ? `LinkedIn: ${linkedin}` : null,
+        speakingTopics ? `Speaking topics: ${speakingTopics}` : null,
+        pastAppearances ? `Past appearances: ${pastAppearances}` : null,
+        bookProductLinks ? `Book/product: ${bookProductLinks}` : null,
+        goals ? `Goals: ${goals}` : null,
+        verticalInterests ? `Vertical interests: ${verticalInterests}` : null,
       ].filter(Boolean).join("\n");
       const prompt = `You are writing a short email pitch that a podcast guest will send to a podcast host. CRITICAL RULES:
 1. The entire body must be in first person only: use "I", "me", "my", "I've", "I'd" etc. Never use the guest's name or third person (he/she/they) in the body—so no "Peter would be great" or "He has written"; write "I would love to be on the show" and "I've written" instead.
@@ -105,12 +125,12 @@ Write the pitch in first person only. Output ONLY: first line "SUBJECT: ..." the
         pitches.push({ podcast_id: p.id, subject, body });
       } catch {
         // Never expose OpenAI errors or key; fall back to template
-        pitches.push(buildFallbackPitch(p, name, bio, expertise, audience, credentials));
+        pitches.push(buildFallbackPitch(p, name, bio, expertise, audience, credentials, pastAppearances));
       }
     }
   } else {
     for (const p of podcasts ?? []) {
-      pitches.push(buildFallbackPitch(p, name, bio, expertise, audience, credentials));
+      pitches.push(buildFallbackPitch(p, name, bio, expertise, audience, credentials, pastAppearances));
     }
   }
 

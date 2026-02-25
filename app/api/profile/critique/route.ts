@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -8,7 +10,7 @@ export async function GET() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, bio, expertise_topics, target_audience, credentials")
+    .select("full_name, bio, expertise_topics, target_audience, credentials, linkedin_url, speaking_topics, past_appearances, book_product_links, goals, vertical_interests")
     .eq("id", user.id)
     .single();
 
@@ -17,6 +19,12 @@ export async function GET() {
   const expertise = profile?.expertise_topics?.trim() || "";
   const audience = profile?.target_audience?.trim() || "";
   const credentials = profile?.credentials?.trim() || "";
+  const linkedin = profile?.linkedin_url?.trim() || "";
+  const speakingTopics = profile?.speaking_topics?.trim() || "";
+  const pastAppearances = profile?.past_appearances?.trim() || "";
+  const bookProductLinks = profile?.book_product_links?.trim() || "";
+  const goals = profile?.goals?.trim() || "";
+  const verticalInterests = profile?.vertical_interests?.trim() || "";
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -31,20 +39,27 @@ export async function GET() {
     bio ? `Bio: ${bio}` : null,
     expertise ? `Expertise/topics: ${expertise}` : null,
     audience ? `Target audience: ${audience}` : null,
-    credentials ? `Credentials (books, awards, past appearances): ${credentials}` : null,
+    credentials ? `Credentials: ${credentials}` : null,
+    linkedin ? `LinkedIn: ${linkedin}` : null,
+    speakingTopics ? `Speaking topics: ${speakingTopics}` : null,
+    pastAppearances ? `Past appearances: ${pastAppearances}` : null,
+    bookProductLinks ? `Book/product links: ${bookProductLinks}` : null,
+    goals ? `Goals: ${goals}` : null,
+    verticalInterests ? `Vertical interests: ${verticalInterests}` : null,
   ].filter(Boolean).join("\n");
 
-  const prompt = `You are an expert at helping people get booked on podcasts. Review this podcast guest profile (used to generate cold pitch emails to hosts) and give a short, actionable critique and advice.
+  const prompt = `You are an expert at helping people get booked on podcasts. Review this podcast guest profile (used to generate cold pitch emails to hosts). Consider bio, expertise, target audience, credentials, LinkedIn, speaking topics, past appearances, and any book/product links. Give a short, actionable critique and rewrite suggestions.
 
 PROFILE:
 ${profileBlock || "(Profile is mostly empty.)"}
 
 Respond with:
 1. What’s working well (1–2 sentences).
-2. Concrete improvements (bullet points): what to add, clarify, or tighten to make pitches more compelling. For each improvement, include a brief example showing how to do it (e.g. "Instead of X, try: Y" or "Example: [sample sentence they could use]").
-3. One specific tip to stand out in the first line of a pitch, with an example first line they could use.
+2. Concrete improvements (bullet points): what to add, clarify, or tighten to make pitches more compelling. For each improvement, include a brief example (e.g. "Instead of X, try: Y").
+3. If the bio or key sections are weak, suggest a rewritten version they could use.
+4. One specific tip to stand out in the first line of a pitch, with an example first line.
 
-Keep the total response under 300 words. Be direct and practical. Every piece of advice should include a concrete example.`;
+Keep the total response under 400 words. Be direct and practical. Every piece of advice should include a concrete example.`;
 
   try {
     const OpenAI = (await import("openai")).default;
@@ -52,7 +67,7 @@ Keep the total response under 300 words. Be direct and practical. Every piece of
     const comp = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 600,
+      max_tokens: 800,
     });
     const critique = comp.choices[0]?.message?.content?.trim() ?? "No feedback generated.";
     return NextResponse.json({ critique });

@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 export async function PATCH(request: Request) {
   try {
     const supabase = await createClient();
@@ -16,6 +18,8 @@ export async function PATCH(request: Request) {
 
     const allowed = [
       "full_name", "bio", "expertise_topics", "target_audience", "credentials",
+      "linkedin_url", "speaking_topics", "past_appearances", "book_product_links",
+      "goals", "vertical_interests", "onboarding_completed_at",
       "smtp_server", "smtp_port", "smtp_security", "smtp_username", "smtp_password", "from_email",
     ] as const;
     const updates: Record<string, unknown> = {
@@ -25,6 +29,7 @@ export async function PATCH(request: Request) {
     for (const key of allowed) {
       if (key in body) {
         if (key === "smtp_port") updates[key] = body[key] != null ? Number(body[key]) : null;
+        else if (key === "onboarding_completed_at") updates[key] = body[key] ? new Date().toISOString() : null;
         else updates[key] = body[key] ?? null;
       }
     }

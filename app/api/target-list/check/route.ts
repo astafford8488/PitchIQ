@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 /** GET ?listen_notes_ids=id1,id2 returns { in_list: string[] } for those LN ids that are in the user's target list. */
 export async function GET(request: Request) {
   const supabase = await createClient();

@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 const LISTEN_NOTES_BASE = "https://listen-api.listennotes.com/api/v2";
 
 export async function GET(request: Request) {

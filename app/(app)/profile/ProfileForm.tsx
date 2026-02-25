@@ -12,6 +12,12 @@ export function ProfileForm({
     expertise_topics: string;
     target_audience: string;
     credentials: string;
+    linkedin_url: string;
+    speaking_topics: string;
+    past_appearances: string;
+    book_product_links: string;
+    goals: string;
+    vertical_interests: string;
   };
 }) {
   const router = useRouter();
@@ -81,7 +87,67 @@ export function ProfileForm({
           value={form.credentials}
           onChange={(e) => setForm((p) => ({ ...p, credentials: e.target.value }))}
           rows={2}
-          placeholder="Books, awards, past appearances"
+          placeholder="Books, awards, certifications"
+          className="mt-1 w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-4 py-2 text-[var(--text)] placeholder:text-[var(--muted)]"
+        />
+      </label>
+      <label className="block">
+        <span className="text-sm text-[var(--muted)]">LinkedIn URL</span>
+        <input
+          type="url"
+          value={form.linkedin_url}
+          onChange={(e) => setForm((p) => ({ ...p, linkedin_url: e.target.value }))}
+          placeholder="https://linkedin.com/in/..."
+          className="mt-1 w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-4 py-2 text-[var(--text)] placeholder:text-[var(--muted)]"
+        />
+      </label>
+      <label className="block">
+        <span className="text-sm text-[var(--muted)]">Speaking topics</span>
+        <input
+          type="text"
+          value={form.speaking_topics}
+          onChange={(e) => setForm((p) => ({ ...p, speaking_topics: e.target.value }))}
+          placeholder="e.g. leadership, marketing, SaaS, personal development"
+          className="mt-1 w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-4 py-2 text-[var(--text)] placeholder:text-[var(--muted)]"
+        />
+      </label>
+      <label className="block">
+        <span className="text-sm text-[var(--muted)]">Past appearances</span>
+        <textarea
+          value={form.past_appearances}
+          onChange={(e) => setForm((p) => ({ ...p, past_appearances: e.target.value }))}
+          rows={2}
+          placeholder="Podcasts, interviews, or talks you’ve done"
+          className="mt-1 w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-4 py-2 text-[var(--text)] placeholder:text-[var(--muted)]"
+        />
+      </label>
+      <label className="block">
+        <span className="text-sm text-[var(--muted)]">Goals</span>
+        <input
+          type="text"
+          value={form.goals}
+          onChange={(e) => setForm((p) => ({ ...p, goals: e.target.value }))}
+          placeholder="e.g. Grow audience, promote book, build authority"
+          className="mt-1 w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-4 py-2 text-[var(--text)] placeholder:text-[var(--muted)]"
+        />
+      </label>
+      <label className="block">
+        <span className="text-sm text-[var(--muted)]">Vertical interests</span>
+        <input
+          type="text"
+          value={form.vertical_interests}
+          onChange={(e) => setForm((p) => ({ ...p, vertical_interests: e.target.value }))}
+          placeholder="e.g. podcast, media, social, VC"
+          className="mt-1 w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-4 py-2 text-[var(--text)] placeholder:text-[var(--muted)]"
+        />
+      </label>
+      <label className="block">
+        <span className="text-sm text-[var(--muted)]">Book / product links</span>
+        <textarea
+          value={form.book_product_links}
+          onChange={(e) => setForm((p) => ({ ...p, book_product_links: e.target.value }))}
+          rows={2}
+          placeholder="Links to your book, course, or product"
           className="mt-1 w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-4 py-2 text-[var(--text)] placeholder:text-[var(--muted)]"
         />
       </label>
