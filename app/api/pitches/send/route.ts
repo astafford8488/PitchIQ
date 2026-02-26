@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { podcast_id, subject, body, base_url: clientBaseUrl } = await request.json();
+  const { podcast_id, subject, body, base_url: clientBaseUrl, template_id } = await request.json();
   if (!podcast_id) return NextResponse.json({ error: "podcast_id required" }, { status: 400 });
 
   const sub = (subject ?? "").trim() || "Podcast guest pitch";
@@ -73,19 +73,30 @@ export async function POST(request: Request) {
   });
 
   const sentAt = new Date().toISOString();
+  const insertPayload: Record<string, unknown> = {
+    user_id: user.id,
+    podcast_id,
+    subject: sub,
+    body: text,
+    sent_at: sentAt,
+    status: "no_response",
+  };
+  if (template_id) insertPayload.template_id = template_id;
+
   const { data: pitch, error: insertErr } = await supabase
     .from("pitches")
-    .insert({
-      user_id: user.id,
-      podcast_id,
-      subject: sub,
-      body: text,
-      sent_at: sentAt,
-      status: "no_response",
-    })
+    .insert(insertPayload)
     .select("id")
     .single();
   if (insertErr) return NextResponse.json({ error: insertErr.message }, { status: 500 });
+
+  if (template_id) {
+    const { data: tmpl } = await supabase.from("pitch_templates").select("usage_count").eq("id", template_id).single();
+    await supabase
+      .from("pitch_templates")
+      .update({ usage_count: (tmpl?.usage_count ?? 0) + 1, updated_at: sentAt })
+      .eq("id", template_id);
+  }
 
   // Use client origin for tracking URL so we don't need NEXT_PUBLIC_APP_URL (avoids Netlify build issues).
   const baseUrl =

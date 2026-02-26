@@ -22,6 +22,17 @@ export async function PATCH(request: Request) {
   if (subject !== undefined) updates.subject = subject;
   if (pitchBody !== undefined) updates.body = pitchBody;
 
+  if (status === "booked") {
+    const { data: pitchRow } = await supabase.from("pitches").select("template_id, status").eq("id", pitch_id).eq("user_id", user.id).single();
+    if (pitchRow?.template_id && pitchRow.status !== "booked") {
+      const { data: tmpl } = await supabase.from("pitch_templates").select("success_count").eq("id", pitchRow.template_id).single();
+      await supabase
+        .from("pitch_templates")
+        .update({ success_count: (tmpl?.success_count ?? 0) + 1, updated_at: updates.updated_at })
+        .eq("id", pitchRow.template_id);
+    }
+  }
+
   const { error } = await supabase.from("pitches").update(updates).eq("id", pitch_id).eq("user_id", user.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });

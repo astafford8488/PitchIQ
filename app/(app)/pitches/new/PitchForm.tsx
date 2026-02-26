@@ -25,7 +25,7 @@ export function PitchForm({ targetList }: { targetList: { id: string; podcast_id
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set(targetList.map((r) => r.podcast_id)));
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ podcast_id: string; subject: string; body: string }[] | null>(null);
+  const [result, setResult] = useState<{ podcast_id: string; subject: string; body: string; template_id?: string }[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   function toggle(podcastId: string) {
@@ -59,7 +59,7 @@ export function PitchForm({ targetList }: { targetList: { id: string; podcast_id
       <div className="space-y-6">
         <p className="text-[var(--muted)]">Review, copy, and mark as sent when you’ve emailed.</p>
         {result.map((p) => (
-          <PitchDraft key={p.podcast_id} podcastId={p.podcast_id} subject={p.subject} body={p.body} />
+          <PitchDraft key={p.podcast_id} podcastId={p.podcast_id} subject={p.subject} body={p.body} templateId={p.template_id} />
         ))}
         <button type="button" onClick={() => { setResult(null); }} className="border border-[var(--border)] px-4 py-2 rounded-lg hover:bg-[var(--surface)]">Generate again</button>
       </div>
@@ -92,7 +92,7 @@ export function PitchForm({ targetList }: { targetList: { id: string; podcast_id
   );
 }
 
-function PitchDraft({ podcastId, subject, body }: { podcastId: string; subject: string; body: string }) {
+function PitchDraft({ podcastId, subject, body, templateId }: { podcastId: string; subject: string; body: string; templateId?: string }) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [sent, setSent] = useState(false);
@@ -117,6 +117,7 @@ function PitchDraft({ podcastId, subject, body }: { podcastId: string; subject: 
           podcast_id: podcastId,
           subject,
           body,
+          template_id: templateId,
           base_url: typeof window !== "undefined" ? window.location.origin : undefined,
         }),
       });

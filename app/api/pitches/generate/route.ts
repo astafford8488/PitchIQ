@@ -1,9 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { fillTemplate, type TemplateVars } from "@/lib/pitch-templates";
 
 export const dynamic = "force-dynamic";
 
 const DAILY_CAP = 10;
+
+type PitchResult = { podcast_id: string; subject: string; body: string; template_id?: string };
 
 function buildFallbackPitch(
   p: { id: string; title: string; host_name?: string | null },
@@ -74,12 +77,65 @@ export async function POST(request: Request) {
   const verticalInterests = profile?.vertical_interests?.trim() || "";
 
   const apiKey = process.env.OPENAI_API_KEY;
-  const pitches: { podcast_id: string; subject: string; body: string }[] = [];
+  const pitches: PitchResult[] = [];
+
+  const { data: templates } = await supabase
+    .from("pitch_templates")
+    .select("id, template_subject, template_body, vertical, success_count, usage_count")
+    .order("usage_count", { ascending: false });
+
+  const templateVars: TemplateVars = {
+    name,
+    host_name: "",
+    podcast_title: "",
+    bio,
+    expertise,
+    audience,
+    credentials,
+    past_appearances: pastAppearances,
+  };
+
+  function findBestTemplate(podcast: { category?: string | null; host_name?: string | null; title?: string | null }): { id: string; subject: string; body: string } | null {
+    const podcastCategory = (podcast.category ?? "").toLowerCase();
+    const candidates = (templates ?? [])
+      .filter((t) => {
+        const v = (t.vertical ?? "").toLowerCase();
+        if (!v) return true;
+        return (
+          verticalInterests.toLowerCase().includes(v) ||
+          podcastCategory.includes(v) ||
+          v.split(/[,;]/).some((part: string) => podcastCategory.includes(part.trim()))
+        );
+      })
+      .sort((a, b) => {
+        const rateA = (a.usage_count ?? 0) > 0 ? (a.success_count ?? 0) / (a.usage_count ?? 1) : 0;
+        const rateB = (b.usage_count ?? 0) > 0 ? (b.success_count ?? 0) / (b.usage_count ?? 1) : 0;
+        if (Math.abs(rateA - rateB) > 0.1) return rateB - rateA;
+        return (b.usage_count ?? 0) - (a.usage_count ?? 0);
+      });
+    const t = candidates[0];
+    if (!t?.template_subject || !t?.template_body) return null;
+    const vars: TemplateVars = {
+      ...templateVars,
+      host_name: podcast.host_name ?? "Host",
+      podcast_title: podcast.title ?? "your show",
+    };
+    return {
+      id: t.id,
+      subject: fillTemplate(t.template_subject, vars),
+      body: fillTemplate(t.template_body, vars),
+    };
+  }
 
   if (apiKey && podcasts?.length) {
     const OpenAI = (await import("openai")).default;
     const openai = new OpenAI({ apiKey });
     for (const p of podcasts) {
+      const templ = findBestTemplate(p);
+      if (templ) {
+        pitches.push({ podcast_id: p.id, subject: templ.subject, body: templ.body, template_id: templ.id });
+        continue;
+      }
       const guestSection = [
         `Name: ${name}`,
         bio ? `Bio: ${bio}` : null,
@@ -122,15 +178,19 @@ Write the pitch in first person only. Output ONLY: first line "SUBJECT: ..." the
         // Ensure sign-off uses actual guest name, not "[Your Name]" or similar
         body = body.replace(/\n\s*Best,\s*\n\s*\[?Your Name\]?\s*$/i, `\n\nBest,\n${name}`);
         if (/\[?\s*Your\s+Name\s*\]?/i.test(body)) body = body.replace(/\[?\s*Your\s+Name\s*\]?/gi, name);
-        pitches.push({ podcast_id: p.id, subject, body });
+        pitches.push({ podcast_id: p.id, subject, body } as PitchResult);
       } catch {
-        // Never expose OpenAI errors or key; fall back to template
-        pitches.push(buildFallbackPitch(p, name, bio, expertise, audience, credentials, pastAppearances));
+        pitches.push(buildFallbackPitch(p, name, bio, expertise, audience, credentials, pastAppearances) as PitchResult);
       }
     }
   } else {
     for (const p of podcasts ?? []) {
-      pitches.push(buildFallbackPitch(p, name, bio, expertise, audience, credentials, pastAppearances));
+      const templ = findBestTemplate(p);
+      if (templ) {
+        pitches.push({ podcast_id: p.id, subject: templ.subject, body: templ.body, template_id: templ.id });
+      } else {
+        pitches.push(buildFallbackPitch(p, name, bio, expertise, audience, credentials, pastAppearances) as PitchResult);
+      }
     }
   }
 
