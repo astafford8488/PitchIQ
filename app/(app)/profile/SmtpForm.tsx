@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 const SECURITY_OPTIONS = ["Auto", "TLS", "STARTTLS", "None"];
 const PORT_SUGGESTIONS = ["25", "2525", "465", "587"];
-const SERVER_HINTS = "Sendgrid, Mailgun, SMTP2GO, Sendinblue, JangoSMTP, GMass";
+const SERVER_HINTS = "smtp.gmail.com (Gmail), smtp.sendgrid.net, smtp.resend.com, smtp.brevo.com — get credentials from your provider.";
 
 type SmtpInitial = {
   smtp_server: string;
@@ -16,7 +16,7 @@ type SmtpInitial = {
   from_email: string;
 };
 
-export function SmtpForm({ initial }: { initial: SmtpInitial }) {
+export function SmtpForm({ initial, onFromEmailChange }: { initial: SmtpInitial; onFromEmailChange?: (email: string) => void }) {
   const router = useRouter();
   const [form, setForm] = useState({
     smtp_server: initial.smtp_server ?? "",
@@ -95,7 +95,7 @@ export function SmtpForm({ initial }: { initial: SmtpInitial }) {
             type="text"
             value={form.smtp_server}
             onChange={(e) => setForm((f) => ({ ...f, smtp_server: e.target.value }))}
-            placeholder="your.site.com"
+            placeholder="smtp.gmail.com or your provider's host"
             className="mt-1 w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text)] placeholder:text-[var(--muted)]"
           />
           <p className="mt-0.5 text-xs text-[var(--muted)]">{SERVER_HINTS}</p>
@@ -109,7 +109,7 @@ export function SmtpForm({ initial }: { initial: SmtpInitial }) {
             placeholder="25"
             className="mt-1 w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text)] placeholder:text-[var(--muted)]"
           />
-          <p className="mt-0.5 text-xs text-[var(--muted)]">{PORT_SUGGESTIONS.join(" ")}</p>
+          <p className="mt-0.5 text-xs text-[var(--muted)]">Common: 587 (TLS), 465 (SSL), 25. {PORT_SUGGESTIONS.join(" ")}</p>
         </label>
         <label className="block">
           <span className="text-sm text-[var(--muted)]">Security</span>
@@ -148,8 +148,11 @@ export function SmtpForm({ initial }: { initial: SmtpInitial }) {
           <input
             type="email"
             value={form.from_email}
-            onChange={(e) => setForm((f) => ({ ...f, from_email: e.target.value }))}
-            placeholder="From email"
+            onChange={(e) => {
+              setForm((f) => ({ ...f, from_email: e.target.value }));
+              onFromEmailChange?.(e.target.value);
+            }}
+            placeholder="e.g. pitches@yourdomain.com — use your own domain for best deliverability"
             className="mt-1 w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text)] placeholder:text-[var(--muted)]"
           />
         </label>

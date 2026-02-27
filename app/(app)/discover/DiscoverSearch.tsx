@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { HelpTrigger } from "@/components/ui/Tooltip";
 
 const TOTAL_TO_SHOW = 15;
 const DEFAULT_QUERY = "podcast";
@@ -167,8 +168,9 @@ export function DiscoverSearch() {
   return (
     <div className="max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">Discover podcasts</h1>
-      <p className="text-[var(--muted)] mb-4">
+      <p className="text-[var(--muted)] mb-4 flex items-center gap-2">
         Search Listen Notes. Results are ranked by Match IQ based on your profile.
+        <HelpTrigger content="Match IQ scores how well each podcast fits your profile: topics, recency, guest interviews." />
       </p>
 
       <form onSubmit={handleSearch} className="mb-4 flex gap-2 flex-wrap">
