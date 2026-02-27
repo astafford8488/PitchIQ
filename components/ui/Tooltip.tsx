@@ -44,7 +44,7 @@ export function Tooltip({
 }
 
 /** Trigger that shows a "?" icon — use when you need a compact help cue. */
-export function HelpTrigger({ content, placement = "top" }: { content: React.ReactNode; placement?: Placement }) {
+export function HelpTrigger({ content, placement = "right" }: { content: React.ReactNode; placement?: Placement }) {
   return (
     <Tooltip content={content} placement={placement}>
       <span
