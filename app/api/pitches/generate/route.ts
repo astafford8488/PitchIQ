@@ -1,10 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { fillTemplate, type TemplateVars } from "@/lib/pitch-templates";
+import { getPitchLimit } from "@/lib/billing";
 
 export const dynamic = "force-dynamic";
 
-const DAILY_CAP = 10;
+const MAX_PER_REQUEST = 10;
 
 type PitchResult = { podcast_id: string; subject: string; body: string; template_id?: string };
 
@@ -38,8 +39,8 @@ export async function POST(request: Request) {
   if (!Array.isArray(podcast_ids) || podcast_ids.length === 0) {
     return NextResponse.json({ error: "podcast_ids array required" }, { status: 400 });
   }
-  if (podcast_ids.length > DAILY_CAP) {
-    return NextResponse.json({ error: `Max ${DAILY_CAP} pitches per request (hackathon cap)` }, { status: 400 });
+  if (podcast_ids.length > MAX_PER_REQUEST) {
+    return NextResponse.json({ error: `Max ${MAX_PER_REQUEST} pitches per request` }, { status: 400 });
   }
 
   // Only allow generating for podcasts in the user's target list (prevents abuse / quota burn)
@@ -50,17 +51,35 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "None of the selected podcasts are in your target list" }, { status: 400 });
   }
 
-  const today = new Date().toISOString().slice(0, 10);
-  const { count } = await supabase.from("pitches").select("id", { count: "exact", head: true }).eq("user_id", user.id).gte("created_at", `${today}T00:00:00Z`);
-  if ((count ?? 0) >= DAILY_CAP) {
-    return NextResponse.json({ error: `Daily limit of ${DAILY_CAP} pitches reached` }, { status: 429 });
-  }
-
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, bio, expertise_topics, target_audience, credentials, linkedin_url, speaking_topics, past_appearances, book_product_links, goals, vertical_interests")
+    .select("full_name, bio, expertise_topics, target_audience, credentials, linkedin_url, speaking_topics, past_appearances, book_product_links, goals, vertical_interests, billing_tier, stripe_subscription_status")
     .eq("id", user.id)
     .single();
+
+  const tier = profile?.stripe_subscription_status === "active" ? (profile?.billing_tier ?? "starter") : "free";
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const { count: usedCount } = await supabase
+    .from("pitches")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .gte("created_at", monthStart.toISOString());
+  const used = usedCount ?? 0;
+  const limit = getPitchLimit(tier);
+  if (used >= limit) {
+    return NextResponse.json(
+      { error: `Monthly pitch limit reached (${limit}). Upgrade for more.` },
+      { status: 429 }
+    );
+  }
+  if (used + requestedIds.length > limit) {
+    return NextResponse.json(
+      { error: `Can only generate ${limit - used} more this month. Upgrade for more.` },
+      { status: 429 }
+    );
+  }
 
   const { data: podcasts } = await supabase.from("podcasts").select("id, title, description, category, host_name, topics").in("id", requestedIds);
 

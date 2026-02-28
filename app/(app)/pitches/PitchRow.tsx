@@ -13,9 +13,12 @@ type Props = {
   body: string | null;
   status: string;
   sentAt: string | null;
+  openedAt?: string | null;
+  clickedAt?: string | null;
+  followUpsSent?: number;
 };
 
-export function PitchRow({ pitchId, podcastTitle, podcastId, subject, body, status, sentAt }: Props) {
+export function PitchRow({ pitchId, podcastTitle, podcastId, subject, body, status, sentAt, openedAt, clickedAt, followUpsSent }: Props) {
   const router = useRouter();
   const [viewOpen, setViewOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -44,7 +47,12 @@ export function PitchRow({ pitchId, podcastTitle, podcastId, subject, body, stat
             {subject && <p className="text-sm text-[var(--muted)] mt-1">Subject: {subject}</p>}
             {sentAt && <p className="text-xs text-[var(--muted)]">Sent: {new Date(sentAt).toLocaleDateString()}</p>}
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            <span className="flex gap-1.5 text-xs">
+              {openedAt && <span className="text-emerald-500" title="Opened">✓</span>}
+              {clickedAt && <span className="text-blue-500" title="Clicked">↗</span>}
+              {(followUpsSent ?? 0) > 0 && <span className="text-[var(--muted)]" title="Follow-ups">{followUpsSent}↻</span>}
+            </span>
             <PitchStatusSelect pitchId={pitchId} currentStatus={status} />
             <button type="button" onClick={() => setViewOpen(true)} className="text-sm border border-[var(--border)] px-3 py-1.5 rounded-lg hover:bg-[var(--surface)]">
               View

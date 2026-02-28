@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SmtpForm } from "../profile/SmtpForm";
 import { DomainVerifier } from "./DomainVerifier";
 
@@ -15,9 +15,22 @@ type SmtpInitial = {
 
 const YOUTUBE_VIDEO_ID = "ZfEK3WP73eY";
 
-export function EmailSettings({ smtpInitial }: { smtpInitial: SmtpInitial }) {
-  const [tier, setTier] = useState<"own" | "managed">("own");
+export function EmailSettings({ smtpInitial, sendingTier }: { smtpInitial: SmtpInitial; sendingTier: "own" | "managed" }) {
+  const [tier, setTier] = useState<"own" | "managed">(sendingTier);
   const [fromEmail, setFromEmail] = useState(smtpInitial.from_email ?? "");
+
+  useEffect(() => {
+    setTier(sendingTier);
+  }, [sendingTier]);
+
+  async function saveTier(next: "own" | "managed") {
+    setTier(next);
+    await fetch("/api/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sending_tier: next }),
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -29,15 +42,14 @@ export function EmailSettings({ smtpInitial }: { smtpInitial: SmtpInitial }) {
               type="radio"
               name="tier"
               checked={tier === "own"}
-              onChange={() => setTier("own")}
+              onChange={() => saveTier("own")}
               className="rounded-full border-[var(--border)]"
             />
             <span>Use my own SMTP</span>
           </label>
-          <label className="flex items-center gap-2 cursor-pointer opacity-70">
-            <input type="radio" name="tier" checked={tier === "managed"} onChange={() => setTier("managed")} className="rounded-full" disabled />
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="tier" checked={tier === "managed"} onChange={() => saveTier("managed")} className="rounded-full border-[var(--border)]" />
             <span>PitchIQ-managed</span>
-            <span className="text-xs text-[var(--muted)]">(coming soon)</span>
           </label>
         </div>
       </div>
@@ -82,11 +94,26 @@ export function EmailSettings({ smtpInitial }: { smtpInitial: SmtpInitial }) {
       )}
 
       {tier === "managed" && (
-        <div className="p-6 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-center">
-          <p className="text-[var(--muted)] mb-2">PitchIQ-managed sending</p>
-          <p className="text-sm text-[var(--muted)]">
-            We&apos;ll handle deliverability and dedicated sending for you. Pricing and availability coming soon.
+        <div className="p-6 bg-[var(--surface)] border border-[var(--border)] rounded-lg">
+          <p className="font-medium mb-2">PitchIQ-managed sending</p>
+          <p className="text-sm text-[var(--muted)] mb-4">
+            Emails send via our verified domain. Add your name and reply-to email below so hosts can respond to you.
           </p>
+          <div className="space-y-4">
+            <label className="block">
+              <span className="text-sm text-[var(--muted)]">Reply-to email (where hosts reply)</span>
+              <input
+                type="email"
+                defaultValue={smtpInitial.from_email ?? ""}
+                placeholder="you@yourcompany.com"
+                className="mt-1 w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text)]"
+                onBlur={(e) => {
+                  const v = e.target.value.trim();
+                  if (v) fetch("/api/profile", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ from_email: v }) });
+                }}
+              />
+            </label>
+          </div>
         </div>
       )}
     </div>

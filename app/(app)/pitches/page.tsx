@@ -9,7 +9,7 @@ export default async function PitchesPage() {
 
   const { data: pitches } = await supabase
     .from("pitches")
-    .select("id, subject, body, status, sent_at, created_at, podcasts(id, title, host_email, contact_url)")
+    .select("id, subject, body, status, sent_at, opened_at, first_clicked_at, follow_ups_sent, created_at, podcasts(id, title, host_email, contact_url)")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -35,6 +35,9 @@ export default async function PitchesPage() {
                 body={p.body}
                 status={p.status}
                 sentAt={p.sent_at}
+                openedAt={p.opened_at}
+                clickedAt={p.first_clicked_at}
+                followUpsSent={p.follow_ups_sent ?? 0}
               />
             );
           })}

@@ -4,7 +4,6 @@ import nodemailer from "nodemailer";
 
 export const dynamic = "force-dynamic";
 
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_PER_RUN = 30;
 
 function normalizeSmtpHost(host: string): string {
@@ -45,13 +44,11 @@ async function runFollowUps(request: Request) {
   }
 
   const supabase = createAdminClient();
-  const cutoff = new Date(Date.now() - SEVEN_DAYS_MS).toISOString();
 
   const { data: pitches } = await supabase
     .from("pitches")
-    .select("id, user_id, podcast_id, subject, body")
+    .select("id, user_id, podcast_id, subject, body, sent_at")
     .not("sent_at", "is", null)
-    .lt("sent_at", cutoff)
     .eq("status", "no_response")
     .eq("follow_ups_sent", 0)
     .limit(MAX_PER_RUN)
@@ -68,11 +65,21 @@ async function runFollowUps(request: Request) {
   for (const pitch of pitches) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("full_name, smtp_server, smtp_port, smtp_security, smtp_username, smtp_password, from_email")
+      .select("full_name, smtp_server, smtp_port, smtp_security, smtp_username, smtp_password, from_email, sending_tier, follow_up_days")
       .eq("id", pitch.user_id)
       .single();
 
-    if (!profile?.from_email?.trim() || !profile?.smtp_server?.trim()) {
+    const daysMs = (profile?.follow_up_days ?? 7) * 24 * 60 * 60 * 1000;
+    const cutoff = new Date(Date.now() - daysMs).toISOString();
+    if (!pitch.sent_at || pitch.sent_at >= cutoff) continue;
+
+    const useManaged = profile?.sending_tier === "managed";
+    if (useManaged) {
+      if (!profile?.from_email?.trim()) {
+        errors.push(`Pitch ${pitch.id}: user has no reply-to email`);
+        continue;
+      }
+    } else if (!profile?.from_email?.trim() || !profile?.smtp_server?.trim()) {
       errors.push(`Pitch ${pitch.id}: user has no SMTP`);
       continue;
     }
@@ -118,28 +125,46 @@ async function runFollowUps(request: Request) {
       body = buildFallbackFollowUp(podcast.host_name, podcast.title, name);
     }
 
-    const portNum = profile.smtp_port ? Number(profile.smtp_port) : 587;
-    const secure = portNum === 465 || profile.smtp_security === "TLS";
-    const transporter = nodemailer.createTransport({
-      host: normalizeSmtpHost(profile.smtp_server),
-      port: portNum,
-      secure,
-      auth:
-        profile.smtp_username?.trim() && profile.smtp_password
-          ? { user: profile.smtp_username.trim(), pass: profile.smtp_password }
-          : undefined,
-      ...(portNum === 587 && profile.smtp_security !== "None" && !secure
-        ? { requireTLS: true }
-        : {}),
-    });
-
     try {
-      await transporter.sendMail({
-        from: profile.from_email.trim(),
-        to: podcast.host_email.trim(),
-        subject,
-        text: body,
-      });
+      if (useManaged) {
+        const resendKey = process.env.RESEND_API_KEY;
+        if (!resendKey) {
+          errors.push(`Pitch ${pitch.id}: RESEND_API_KEY not set`);
+          continue;
+        }
+        const { Resend } = await import("resend");
+        const resend = new Resend(resendKey);
+        const fromName = profile.full_name?.trim() || "Podcast Guest";
+        const { error: resendErr } = await resend.emails.send({
+          from: `${fromName} <pitches@pitchiq.live>`,
+          to: podcast.host_email.trim(),
+          replyTo: profile.from_email.trim(),
+          subject,
+          text: body,
+        });
+        if (resendErr) throw new Error(resendErr.message);
+      } else {
+        const portNum = profile.smtp_port ? Number(profile.smtp_port) : 587;
+        const secure = portNum === 465 || profile.smtp_security === "TLS";
+        const transporter = nodemailer.createTransport({
+          host: normalizeSmtpHost(profile.smtp_server),
+          port: portNum,
+          secure,
+          auth:
+            profile.smtp_username?.trim() && profile.smtp_password
+              ? { user: profile.smtp_username.trim(), pass: profile.smtp_password }
+              : undefined,
+          ...(portNum === 587 && profile.smtp_security !== "None" && !secure
+            ? { requireTLS: true }
+            : {}),
+        });
+        await transporter.sendMail({
+          from: profile.from_email.trim(),
+          to: podcast.host_email.trim(),
+          subject,
+          text: body,
+        });
+      }
     } catch (err) {
       errors.push(`Pitch ${pitch.id}: ${err instanceof Error ? err.message : "Send failed"}`);
       continue;

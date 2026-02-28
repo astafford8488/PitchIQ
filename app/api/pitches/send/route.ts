@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
+import { getPitchLimit } from "@/lib/billing";
 
 export const dynamic = "force-dynamic";
 
@@ -24,14 +25,41 @@ export async function POST(request: Request) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("smtp_server, smtp_port, smtp_security, smtp_username, smtp_password, from_email")
+    .select("full_name, smtp_server, smtp_port, smtp_security, smtp_username, smtp_password, from_email, sending_tier, billing_tier, stripe_subscription_status")
     .eq("id", user.id)
     .single();
 
-  if (!profile?.from_email?.trim() || !profile?.smtp_server?.trim()) {
+  const useManaged = profile?.sending_tier === "managed";
+
+  if (useManaged) {
+    if (!profile?.from_email?.trim()) {
+      return NextResponse.json(
+        { error: "Add your reply-to email in Settings (Email setup → PitchIQ-managed) before sending." },
+        { status: 400 }
+      );
+    }
+  } else if (!profile?.from_email?.trim() || !profile?.smtp_server?.trim()) {
     return NextResponse.json(
-      { error: "Configure SMTP and From email in Profile before sending pitches." },
+      { error: "Configure SMTP and From email in Settings before sending pitches." },
       { status: 400 }
+    );
+  }
+
+  const tier = profile?.stripe_subscription_status === "active" ? (profile?.billing_tier ?? "starter") : "free";
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const { count: usedCount } = await supabase
+    .from("pitches")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .gte("created_at", monthStart.toISOString());
+  const used = usedCount ?? 0;
+  const limit = getPitchLimit(tier);
+  if (used >= limit) {
+    return NextResponse.json(
+      { error: `Monthly pitch limit reached (${limit}). Upgrade for more.` },
+      { status: 429 }
     );
   }
 
@@ -55,22 +83,6 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
-
-  const portNum = profile.smtp_port ? Number(profile.smtp_port) : 587;
-  const secure = portNum === 465 || profile.smtp_security === "TLS";
-  const host = normalizeSmtpHost(profile.smtp_server);
-  const transporter = nodemailer.createTransport({
-    host,
-    port: portNum,
-    secure,
-    auth:
-      profile.smtp_username?.trim() && profile.smtp_password
-        ? { user: profile.smtp_username.trim(), pass: profile.smtp_password }
-        : undefined,
-    ...(portNum === 587 && profile.smtp_security !== "None" && !secure
-      ? { requireTLS: true }
-      : {}),
-  });
 
   const sentAt = new Date().toISOString();
   const insertPayload: Record<string, unknown> = {
@@ -108,27 +120,73 @@ export async function POST(request: Request) {
     baseUrl && pitch?.id
       ? `${baseUrl.replace(/\/$/, "")}/api/track/open?p=${pitch.id}`
       : "";
+  const clickBase = baseUrl && pitch?.id ? `${baseUrl.replace(/\/$/, "")}/api/track/click?p=${pitch.id}&u=` : "";
+  const htmlContent = text.replace(/\n/g, "<br>");
+  const htmlWithLinks = clickBase
+    ? htmlContent.replace(
+        /(https?:\/\/[^\s<]+)/g,
+        (url: string) => `<a href="${clickBase}${encodeURIComponent(url)}">${url}</a>`
+      )
+    : htmlContent;
   const htmlBody = openTrackUrl
-    ? `${text.replace(/\n/g, "<br>")}<br><img src="${openTrackUrl}" width="1" height="1" alt="" />`
+    ? `${htmlWithLinks}<br><img src="${openTrackUrl}" width="1" height="1" alt="" />`
     : undefined;
 
-  const fromAddress = profile.from_email.trim();
-  if (!fromAddress || !fromAddress.includes("@")) {
+  const replyTo = profile.from_email.trim();
+  if (!replyTo || !replyTo.includes("@")) {
     await supabase.from("pitches").delete().eq("id", pitch.id);
     return NextResponse.json(
-      { error: "Your From email in Settings is missing or invalid." },
+      { error: "Your reply-to email in Settings is missing or invalid." },
       { status: 400 }
     );
   }
 
   try {
-    await transporter.sendMail({
-      from: fromAddress,
-      to: toAddress,
-      subject: sub,
-      text,
-      ...(htmlBody && { html: htmlBody }),
-    });
+    if (useManaged) {
+      const resendKey = process.env.RESEND_API_KEY;
+      if (!resendKey) {
+        await supabase.from("pitches").delete().eq("id", pitch.id);
+        return NextResponse.json({ error: "PitchIQ-managed sending is not configured." }, { status: 500 });
+      }
+      const { Resend } = await import("resend");
+      const resend = new Resend(resendKey);
+      const fromName = profile.full_name?.trim() || "Podcast Guest";
+      const { error: resendErr } = await resend.emails.send({
+        from: `${fromName} <pitches@pitchiq.live>`,
+        to: toAddress,
+        replyTo: replyTo,
+        subject: sub,
+        html: htmlBody ?? text.replace(/\n/g, "<br>"),
+        text,
+      });
+      if (resendErr) {
+        await supabase.from("pitches").delete().eq("id", pitch.id);
+        return NextResponse.json({ error: resendErr.message ?? "Failed to send email" }, { status: 500 });
+      }
+    } else {
+      const portNum = profile.smtp_port ? Number(profile.smtp_port) : 587;
+      const secure = portNum === 465 || profile.smtp_security === "TLS";
+      const host = normalizeSmtpHost(profile.smtp_server);
+      const transporter = nodemailer.createTransport({
+        host,
+        port: portNum,
+        secure,
+        auth:
+          profile.smtp_username?.trim() && profile.smtp_password
+            ? { user: profile.smtp_username.trim(), pass: profile.smtp_password }
+            : undefined,
+        ...(portNum === 587 && profile.smtp_security !== "None" && !secure
+          ? { requireTLS: true }
+          : {}),
+      });
+      await transporter.sendMail({
+        from: replyTo,
+        to: toAddress,
+        subject: sub,
+        text,
+        ...(htmlBody && { html: htmlBody }),
+      });
+    }
   } catch (err) {
     await supabase.from("pitches").delete().eq("id", pitch.id);
     const message = err instanceof Error ? err.message : "Failed to send email";

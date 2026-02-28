@@ -21,6 +21,8 @@ export async function PATCH(request: Request) {
       "linkedin_url", "speaking_topics", "past_appearances", "book_product_links",
       "goals", "vertical_interests", "onboarding_completed_at",
       "smtp_server", "smtp_port", "smtp_security", "smtp_username", "smtp_password", "from_email",
+      "follow_up_days", "max_follow_ups", "follow_up_tone",
+      "sending_tier",
     ] as const;
     const updates: Record<string, unknown> = {
       id: user.id,
@@ -28,7 +30,8 @@ export async function PATCH(request: Request) {
     };
     for (const key of allowed) {
       if (key in body) {
-        if (key === "smtp_port") updates[key] = body[key] != null ? Number(body[key]) : null;
+        if (key === "smtp_port" || key === "follow_up_days" || key === "max_follow_ups")
+          updates[key] = body[key] != null ? Number(body[key]) : null;
         else if (key === "onboarding_completed_at") updates[key] = body[key] ? new Date().toISOString() : null;
         else updates[key] = body[key] ?? null;
       }

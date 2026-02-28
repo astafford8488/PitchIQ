@@ -1,10 +1,28 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import { getPitchLimit, getUsageStats } from "@/lib/billing";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("billing_tier, stripe_subscription_status")
+    .eq("id", user.id)
+    .single();
+  const tier = profile?.stripe_subscription_status === "active" ? (profile?.billing_tier ?? "starter") : "free";
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const { count: usedCount } = await supabase
+    .from("pitches")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .gte("created_at", monthStart.toISOString());
+  const usage = getUsageStats(usedCount ?? 0, tier);
 
   const { data: targetList } = await supabase.from("target_list").select("id").eq("user_id", user.id);
   const { data: allPitches } = await supabase
@@ -31,7 +49,15 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">Dashboard</h1>
-      <p className="text-[var(--muted)] mb-8">Overview of your podcast outreach.</p>
+      <p className="text-[var(--muted)] mb-4">Overview of your podcast outreach.</p>
+
+      {usage.nearLimit && (
+        <UpgradePrompt
+          used={usage.used}
+          limit={usage.limit}
+          isSubscribed={profile?.stripe_subscription_status === "active"}
+        />
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
