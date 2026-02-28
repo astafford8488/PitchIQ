@@ -1,25 +1,30 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { SmtpForm } from "../profile/SmtpForm";
 import { DomainVerifier } from "./DomainVerifier";
 
 function ManagedEmailForm({ initialEmail }: { initialEmail: string }) {
+  const router = useRouter();
   const [email, setEmail] = useState(initialEmail);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setEmail(initialEmail);
+    setEmail(initialEmail ?? "");
   }, [initialEmail]);
 
   async function save() {
     setSaving(true);
     setSaved(false);
-    await fetch("/api/profile", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ from_email: email.trim() || null }) });
+    const res = await fetch("/api/profile", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ from_email: email.trim() || null }) });
     setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    if (res.ok) {
+      setSaved(true);
+      router.refresh();
+      setTimeout(() => setSaved(false), 2000);
+    }
   }
 
   return (
