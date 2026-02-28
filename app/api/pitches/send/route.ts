@@ -136,7 +136,7 @@ export async function POST(request: Request) {
     ? `${htmlWithLinks}<br><img src="${openTrackUrl}" width="1" height="1" alt="" />`
     : undefined;
 
-  const replyTo = profile.from_email.trim();
+  const replyTo = profile?.from_email?.trim() ?? "";
   if (!replyTo || !replyTo.includes("@")) {
     await supabase.from("pitches").delete().eq("id", pitch.id);
     return NextResponse.json(
