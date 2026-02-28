@@ -38,17 +38,24 @@ export async function PATCH(request: Request) {
       }
     }
 
-    const { error } = await supabase
+    const { error: upsertError } = await supabase
       .from("profiles")
       .upsert(updates, { onConflict: "id" });
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (upsertError) {
+      return NextResponse.json({ error: upsertError.message }, { status: 500 });
     }
+
+    // Verify write and return saved values
+    const { data: saved } = await supabase
+      .from("profiles")
+      .select("from_email, sending_tier")
+      .eq("id", user.id)
+      .single();
 
     revalidatePath("/settings");
     revalidatePath("/");
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, profile: saved });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Server error";
     return NextResponse.json({ error: message }, { status: 500 });

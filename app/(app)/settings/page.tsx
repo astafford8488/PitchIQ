@@ -1,3 +1,4 @@
+import { unstable_noStore } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { EmailSettings } from "./EmailSettings";
@@ -6,6 +7,7 @@ import { FollowUpConfig } from "./FollowUpConfig";
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
+  unstable_noStore();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");

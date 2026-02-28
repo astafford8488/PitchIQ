@@ -30,14 +30,14 @@ function ManagedEmailForm({ initialEmail }: { initialEmail: string }) {
           sending_tier: "managed",
         }),
       });
-      const data = await res.json().catch(() => ({}));
+      const data = (await res.json().catch(() => ({}))) as { error?: string; profile?: { from_email?: string } };
       if (!res.ok) {
-        setError((data as { error?: string }).error || "Failed to save");
+        setError(data.error || "Failed to save");
         return;
       }
       setSaved(true);
+      if (data.profile?.from_email != null) setEmail(data.profile.from_email);
       router.refresh();
-      setTimeout(() => setSaved(false), 2000);
     } finally {
       setSaving(false);
     }
