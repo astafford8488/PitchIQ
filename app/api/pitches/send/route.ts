@@ -154,7 +154,7 @@ export async function POST(request: Request) {
       }
       const { Resend } = await import("resend");
       const resend = new Resend(resendKey);
-      const fromName = profile.full_name?.trim() || "Podcast Guest";
+      const fromName = profile?.full_name?.trim() || "Podcast Guest";
       const { error: resendErr } = await resend.emails.send({
         from: `${fromName} <pitches@pitchiq.live>`,
         to: toAddress,
@@ -168,18 +168,18 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: resendErr.message ?? "Failed to send email" }, { status: 500 });
       }
     } else {
-      const portNum = profile.smtp_port ? Number(profile.smtp_port) : 587;
-      const secure = portNum === 465 || profile.smtp_security === "TLS";
-      const host = normalizeSmtpHost(profile.smtp_server);
+      const portNum = profile?.smtp_port ? Number(profile.smtp_port) : 587;
+      const secure = portNum === 465 || profile?.smtp_security === "TLS";
+      const host = normalizeSmtpHost(profile?.smtp_server ?? "");
       const transporter = nodemailer.createTransport({
         host,
         port: portNum,
         secure,
         auth:
-          profile.smtp_username?.trim() && profile.smtp_password
-            ? { user: profile.smtp_username.trim(), pass: profile.smtp_password }
+          profile?.smtp_username?.trim() && profile?.smtp_password
+            ? { user: profile?.smtp_username.trim(), pass: profile?.smtp_password }
             : undefined,
-        ...(portNum === 587 && profile.smtp_security !== "None" && !secure
+        ...(portNum === 587 && profile?.smtp_security !== "None" && !secure
           ? { requireTLS: true }
           : {}),
       });
