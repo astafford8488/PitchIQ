@@ -33,7 +33,7 @@ export default async function SettingsPage() {
             smtp_password: profile?.smtp_password ?? "",
             from_email: profile?.from_email ?? "",
           }}
-          sendingTier={(profile?.sending_tier as "own" | "managed") ?? "own"}
+          sendingTier={(profile?.sending_tier as "own" | "managed") ?? "managed"}
         />
       </section>
 

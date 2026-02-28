@@ -4,6 +4,46 @@ import { useState, useEffect } from "react";
 import { SmtpForm } from "../profile/SmtpForm";
 import { DomainVerifier } from "./DomainVerifier";
 
+function ManagedEmailForm({ initialEmail }: { initialEmail: string }) {
+  const [email, setEmail] = useState(initialEmail);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setEmail(initialEmail);
+  }, [initialEmail]);
+
+  async function save() {
+    setSaving(true);
+    setSaved(false);
+    await fetch("/api/profile", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ from_email: email.trim() || null }) });
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  return (
+    <div className="p-6 bg-[var(--surface)] border border-[var(--border)] rounded-lg">
+      <p className="font-medium mb-2">PitchIQ-managed sending</p>
+      <p className="text-sm text-[var(--muted)] mb-4">
+        Emails send via our verified domain. Add your reply-to email below so hosts can respond to you. No SMTP setup needed.
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@yourcompany.com"
+          className="flex-1 min-w-[200px] bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text)]"
+        />
+        <button type="button" onClick={save} disabled={saving} className="shrink-0 px-4 py-2 bg-[var(--accent)] text-[var(--bg)] rounded-lg font-medium hover:bg-[var(--accent-hover)] disabled:opacity-50">
+          {saving ? "Saving…" : saved ? "Saved" : "Save"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 type SmtpInitial = {
   smtp_server: string;
   smtp_port: number | string;
@@ -21,6 +61,9 @@ export function EmailSettings({ smtpInitial, sendingTier }: { smtpInitial: SmtpI
 
   useEffect(() => {
     setTier(sendingTier);
+    if (!sendingTier) {
+      fetch("/api/profile", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sending_tier: "managed" }) }).catch(() => {});
+    }
   }, [sendingTier]);
 
   async function saveTier(next: "own" | "managed") {
@@ -36,7 +79,12 @@ export function EmailSettings({ smtpInitial, sendingTier }: { smtpInitial: SmtpI
     <div className="space-y-6">
       <div>
         <h3 className="font-semibold mb-2">Sending method</h3>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="tier" checked={tier === "managed"} onChange={() => saveTier("managed")} className="rounded-full border-[var(--border)]" />
+            <span>PitchIQ-managed</span>
+            <span className="text-xs text-[var(--muted)]">(recommended — no setup)</span>
+          </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="radio"
@@ -46,10 +94,6 @@ export function EmailSettings({ smtpInitial, sendingTier }: { smtpInitial: SmtpI
               className="rounded-full border-[var(--border)]"
             />
             <span>Use my own SMTP</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="radio" name="tier" checked={tier === "managed"} onChange={() => saveTier("managed")} className="rounded-full border-[var(--border)]" />
-            <span>PitchIQ-managed</span>
           </label>
         </div>
       </div>
@@ -94,27 +138,7 @@ export function EmailSettings({ smtpInitial, sendingTier }: { smtpInitial: SmtpI
       )}
 
       {tier === "managed" && (
-        <div className="p-6 bg-[var(--surface)] border border-[var(--border)] rounded-lg">
-          <p className="font-medium mb-2">PitchIQ-managed sending</p>
-          <p className="text-sm text-[var(--muted)] mb-4">
-            Emails send via our verified domain. Add your name and reply-to email below so hosts can respond to you.
-          </p>
-          <div className="space-y-4">
-            <label className="block">
-              <span className="text-sm text-[var(--muted)]">Reply-to email (where hosts reply)</span>
-              <input
-                type="email"
-                defaultValue={smtpInitial.from_email ?? ""}
-                placeholder="you@yourcompany.com"
-                className="mt-1 w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text)]"
-                onBlur={(e) => {
-                  const v = e.target.value.trim();
-                  if (v) fetch("/api/profile", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ from_email: v }) });
-                }}
-              />
-            </label>
-          </div>
-        </div>
+        <ManagedEmailForm initialEmail={smtpInitial.from_email ?? ""} />
       )}
     </div>
   );
