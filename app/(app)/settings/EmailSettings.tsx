@@ -7,9 +7,10 @@ import { DomainVerifier } from "./DomainVerifier";
 
 function ManagedEmailForm({ initialEmail }: { initialEmail: string }) {
   const router = useRouter();
-  const [email, setEmail] = useState(initialEmail);
+  const [email, setEmail] = useState(initialEmail ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setEmail(initialEmail ?? "");
@@ -18,19 +19,27 @@ function ManagedEmailForm({ initialEmail }: { initialEmail: string }) {
   async function save() {
     setSaving(true);
     setSaved(false);
-    const res = await fetch("/api/profile", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from_email: email.trim() || null,
-        sending_tier: "managed",
-      }),
-    });
-    setSaving(false);
-    if (res.ok) {
+    setError(null);
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          from_email: email.trim() || null,
+          sending_tier: "managed",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError((data as { error?: string }).error || "Failed to save");
+        return;
+      }
       setSaved(true);
       router.refresh();
       setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -52,6 +61,7 @@ function ManagedEmailForm({ initialEmail }: { initialEmail: string }) {
           {saving ? "Saving…" : saved ? "Saved" : "Save"}
         </button>
       </div>
+      {error && <p className="text-sm text-red-400 mt-2">{error}</p>}
     </div>
   );
 }

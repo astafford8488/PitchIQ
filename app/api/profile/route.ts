@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,6 @@ export async function PATCH(request: Request) {
       "sending_tier",
     ] as const;
     const updates: Record<string, unknown> = {
-      id: user.id,
       updated_at: new Date().toISOString(),
     };
     for (const key of allowed) {
@@ -37,10 +37,16 @@ export async function PATCH(request: Request) {
       }
     }
 
-    const { error } = await supabase.from("profiles").upsert(updates, { onConflict: "id" });
+    const { error } = await supabase
+      .from("profiles")
+      .update(updates)
+      .eq("id", user.id);
+
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    revalidatePath("/settings");
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Server error";
