@@ -18,7 +18,14 @@ function ManagedEmailForm({ initialEmail }: { initialEmail: string }) {
   async function save() {
     setSaving(true);
     setSaved(false);
-    const res = await fetch("/api/profile", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ from_email: email.trim() || null }) });
+    const res = await fetch("/api/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from_email: email.trim() || null,
+        sending_tier: "managed",
+      }),
+    });
     setSaving(false);
     if (res.ok) {
       setSaved(true);

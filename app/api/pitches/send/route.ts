@@ -29,16 +29,20 @@ export async function POST(request: Request) {
     .eq("id", user.id)
     .single();
 
-  const useManaged = profile?.sending_tier === "managed";
+  const hasSmtp = !!profile?.smtp_server?.trim();
+  const hasFromEmail = !!profile?.from_email?.trim();
+  const useManaged =
+    profile?.sending_tier === "managed" ||
+    (!hasSmtp && hasFromEmail);
 
   if (useManaged) {
-    if (!profile?.from_email?.trim()) {
+    if (!hasFromEmail) {
       return NextResponse.json(
-        { error: "Add your reply-to email in Settings (Email setup → PitchIQ-managed) before sending." },
+        { error: "Add your reply-to email in Settings (Email setup → PitchIQ-managed) and click Save." },
         { status: 400 }
       );
     }
-  } else if (!profile?.from_email?.trim() || !profile?.smtp_server?.trim()) {
+  } else if (!hasFromEmail || !hasSmtp) {
     return NextResponse.json(
       { error: "Configure SMTP and From email in Settings before sending pitches." },
       { status: 400 }
