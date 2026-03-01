@@ -25,24 +25,11 @@ export async function POST(request: Request) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, smtp_server, smtp_port, smtp_security, smtp_username, smtp_password, from_email, sending_tier, billing_tier, stripe_subscription_status")
+    .select("full_name, smtp_server, smtp_port, smtp_security, smtp_username, smtp_password, from_email, billing_tier, stripe_subscription_status")
     .eq("id", user.id)
     .single();
 
-  const hasSmtp = !!profile?.smtp_server?.trim();
-  const hasFromEmail = !!profile?.from_email?.trim();
-  const useManaged =
-    profile?.sending_tier === "managed" ||
-    (!hasSmtp && hasFromEmail);
-
-  if (useManaged) {
-    if (!hasFromEmail) {
-      return NextResponse.json(
-        { error: "Add your reply-to email in Settings (Email setup → PitchIQ-managed) and click Save." },
-        { status: 400 }
-      );
-    }
-  } else if (!hasFromEmail || !hasSmtp) {
+  if (!profile?.from_email?.trim() || !profile?.smtp_server?.trim()) {
     return NextResponse.json(
       { error: "Configure SMTP and From email in Settings before sending pitches." },
       { status: 400 }
@@ -146,51 +133,28 @@ export async function POST(request: Request) {
   }
 
   try {
-    if (useManaged) {
-      const resendKey = process.env.RESEND_API_KEY;
-      if (!resendKey) {
-        await supabase.from("pitches").delete().eq("id", pitch.id);
-        return NextResponse.json({ error: "PitchIQ-managed sending is not configured." }, { status: 500 });
-      }
-      const { Resend } = await import("resend");
-      const resend = new Resend(resendKey);
-      const fromName = profile?.full_name?.trim() || "Podcast Guest";
-      const { error: resendErr } = await resend.emails.send({
-        from: `${fromName} <pitches@pitchiq.live>`,
-        to: toAddress,
-        replyTo: replyTo,
-        subject: sub,
-        html: htmlBody ?? text.replace(/\n/g, "<br>"),
-        text,
-      });
-      if (resendErr) {
-        await supabase.from("pitches").delete().eq("id", pitch.id);
-        return NextResponse.json({ error: resendErr.message ?? "Failed to send email" }, { status: 500 });
-      }
-    } else {
-      const portNum = profile?.smtp_port ? Number(profile.smtp_port) : 587;
-      const secure = portNum === 465 || profile?.smtp_security === "TLS";
-      const host = normalizeSmtpHost(profile?.smtp_server ?? "");
-      const transporter = nodemailer.createTransport({
-        host,
-        port: portNum,
-        secure,
-        auth:
-          profile?.smtp_username?.trim() && profile?.smtp_password
-            ? { user: profile?.smtp_username.trim(), pass: profile?.smtp_password }
-            : undefined,
-        ...(portNum === 587 && profile?.smtp_security !== "None" && !secure
-          ? { requireTLS: true }
-          : {}),
-      });
-      await transporter.sendMail({
-        from: replyTo,
-        to: toAddress,
-        subject: sub,
-        text,
-        ...(htmlBody && { html: htmlBody }),
-      });
-    }
+    const portNum = profile?.smtp_port ? Number(profile.smtp_port) : 587;
+    const secure = portNum === 465 || profile?.smtp_security === "TLS";
+    const host = normalizeSmtpHost(profile?.smtp_server ?? "");
+    const transporter = nodemailer.createTransport({
+      host,
+      port: portNum,
+      secure,
+      auth:
+        profile?.smtp_username?.trim() && profile?.smtp_password
+          ? { user: profile?.smtp_username.trim(), pass: profile?.smtp_password }
+          : undefined,
+      ...(portNum === 587 && profile?.smtp_security !== "None" && !secure
+        ? { requireTLS: true }
+        : {}),
+    });
+    await transporter.sendMail({
+      from: replyTo,
+      to: toAddress,
+      subject: sub,
+      text,
+      ...(htmlBody && { html: htmlBody }),
+    });
   } catch (err) {
     await supabase.from("pitches").delete().eq("id", pitch.id);
     const message = err instanceof Error ? err.message : "Failed to send email";

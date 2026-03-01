@@ -16,7 +16,21 @@ type SmtpInitial = {
   from_email: string;
 };
 
-export function SmtpForm({ initial, onFromEmailChange }: { initial: SmtpInitial; onFromEmailChange?: (email: string) => void }) {
+type FollowUpInitial = {
+  follow_up_days: number;
+  max_follow_ups: number;
+  follow_up_tone: string;
+};
+
+export function SmtpForm({
+  initial,
+  followUpInitial,
+  onFromEmailChange,
+}: {
+  initial: SmtpInitial;
+  followUpInitial?: FollowUpInitial;
+  onFromEmailChange?: (email: string) => void;
+}) {
   const router = useRouter();
   const [form, setForm] = useState({
     smtp_server: initial.smtp_server ?? "",
@@ -26,6 +40,9 @@ export function SmtpForm({ initial, onFromEmailChange }: { initial: SmtpInitial;
     smtp_password: initial.smtp_password ?? "",
     from_email: initial.from_email ?? "",
     to_email: "",
+    follow_up_days: followUpInitial?.follow_up_days ?? 7,
+    max_follow_ups: followUpInitial?.max_follow_ups ?? 1,
+    follow_up_tone: followUpInitial?.follow_up_tone ?? "friendly",
   });
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -38,17 +55,23 @@ export function SmtpForm({ initial, onFromEmailChange }: { initial: SmtpInitial;
     setSaving(true);
     setSaved(false);
     setSaveError(null);
+    const body: Record<string, unknown> = {
+      smtp_server: form.smtp_server || null,
+      smtp_port: form.smtp_port ? Number(form.smtp_port) : null,
+      smtp_security: form.smtp_security || null,
+      smtp_username: form.smtp_username || null,
+      smtp_password: form.smtp_password || null,
+      from_email: form.from_email || null,
+    };
+    if (followUpInitial !== undefined) {
+      body.follow_up_days = form.follow_up_days;
+      body.max_follow_ups = form.max_follow_ups;
+      body.follow_up_tone = form.follow_up_tone;
+    }
     const res = await fetch("/api/profile", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        smtp_server: form.smtp_server || null,
-        smtp_port: form.smtp_port ? Number(form.smtp_port) : null,
-        smtp_security: form.smtp_security || null,
-        smtp_username: form.smtp_username || null,
-        smtp_password: form.smtp_password || null,
-        from_email: form.from_email || null,
-      }),
+      body: JSON.stringify(body),
     });
     const data = await res.json().catch(() => ({}));
     setSaving(false);
@@ -167,6 +190,53 @@ export function SmtpForm({ initial, onFromEmailChange }: { initial: SmtpInitial;
           />
         </label>
       </div>
+
+      {followUpInitial !== undefined && (
+        <div className="pt-6 border-t border-[var(--border)] space-y-4">
+          <h3 className="font-semibold">Follow-up sequences</h3>
+          <p className="text-sm text-[var(--muted)]">
+            When and how AI follow-ups are sent for pitches with no response.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <label className="block">
+              <span className="text-sm text-[var(--muted)]">Days until first follow-up</span>
+              <input
+                type="number"
+                min={3}
+                max={14}
+                value={form.follow_up_days}
+                onChange={(e) => setForm((f) => ({ ...f, follow_up_days: Math.max(3, Math.min(14, parseInt(e.target.value) || 7)) }))}
+                className="mt-1 w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text)]"
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm text-[var(--muted)]">Max follow-ups per pitch</span>
+              <select
+                value={form.max_follow_ups}
+                onChange={(e) => setForm((f) => ({ ...f, max_follow_ups: parseInt(e.target.value) || 1 }))}
+                className="mt-1 w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text)]"
+              >
+                <option value={1}>1</option>
+                <option value={2}>2</option>
+                <option value={3}>3</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="text-sm text-[var(--muted)]">Tone</span>
+              <select
+                value={form.follow_up_tone}
+                onChange={(e) => setForm((f) => ({ ...f, follow_up_tone: e.target.value }))}
+                className="mt-1 w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text)]"
+              >
+                <option value="friendly">Friendly</option>
+                <option value="professional">Professional</option>
+                <option value="brief">Brief</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      )}
+
       {saveError && (
         <p className="text-sm text-red-400">{saveError}</p>
       )}

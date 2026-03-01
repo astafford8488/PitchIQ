@@ -2,7 +2,6 @@ import { unstable_noStore } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { EmailSettings } from "./EmailSettings";
-import { FollowUpConfig } from "./FollowUpConfig";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +13,7 @@ export default async function SettingsPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("smtp_server, smtp_port, smtp_security, smtp_username, smtp_password, from_email, sending_tier, follow_up_days, max_follow_ups, follow_up_tone")
+    .select("smtp_server, smtp_port, smtp_security, smtp_username, smtp_password, from_email, follow_up_days, max_follow_ups, follow_up_tone")
     .eq("id", user.id)
     .single();
 
@@ -37,17 +36,7 @@ export default async function SettingsPage() {
             smtp_password: profile?.smtp_password ?? "",
             from_email: profile?.from_email ?? "",
           }}
-          sendingTier={(profile?.sending_tier as "own" | "managed") ?? "managed"}
-        />
-      </section>
-
-      <section className="mt-10">
-        <h2 className="text-xl font-bold mb-4">Follow-up sequences</h2>
-        <p className="text-[var(--muted)] text-sm mb-4">
-          Configure when and how AI follow-ups are sent for pitches with no response.
-        </p>
-        <FollowUpConfig
-          initial={{
+          followUpInitial={{
             follow_up_days: profile?.follow_up_days ?? 7,
             max_follow_ups: profile?.max_follow_ups ?? 1,
             follow_up_tone: profile?.follow_up_tone ?? "friendly",
