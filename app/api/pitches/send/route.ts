@@ -23,15 +23,25 @@ export async function POST(request: Request) {
   const text = (body ?? "").trim();
   if (!text) return NextResponse.json({ error: "Pitch body is required" }, { status: 400 });
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("full_name, smtp_server, smtp_port, smtp_security, smtp_username, smtp_password, from_email, billing_tier, stripe_subscription_status")
     .eq("id", user.id)
     .single();
 
-  if (!profile?.from_email?.trim() || !profile?.smtp_server?.trim()) {
+  if (profileError) {
     return NextResponse.json(
-      { error: "Configure SMTP and From email in Settings before sending pitches." },
+      { error: `Profile error: ${profileError.message}. Run the profile/SMTP migrations in Supabase if you haven't.` },
+      { status: 500 }
+    );
+  }
+
+  if (!profile?.from_email?.trim() || !profile?.smtp_server?.trim()) {
+    const missing = [];
+    if (!profile?.from_email?.trim()) missing.push("From email");
+    if (!profile?.smtp_server?.trim()) missing.push("SMTP server");
+    return NextResponse.json(
+      { error: `Configure ${missing.join(" and ")} in Settings and click Save before sending pitches.` },
       { status: 400 }
     );
   }
