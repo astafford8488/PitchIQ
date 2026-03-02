@@ -133,14 +133,19 @@ export async function POST(request: Request) {
     ? `${htmlWithLinks}<br><img src="${openTrackUrl}" width="1" height="1" alt="" />`
     : undefined;
 
-  const replyTo = profile?.from_email?.trim() ?? "";
-  if (!replyTo || !replyTo.includes("@")) {
+  const fromEmail = profile?.from_email?.trim() ?? "";
+  if (!fromEmail || !fromEmail.includes("@")) {
     await supabase.from("pitches").delete().eq("id", pitch.id);
     return NextResponse.json(
       { error: "Your reply-to email in Settings is missing or invalid." },
       { status: 400 }
     );
   }
+
+  // When set, use replies+<pitch.id>@domain so the inbound webhook can match the pitch
+  const inboundReplyAddress = process.env.INBOUND_REPLY_ADDRESS?.trim();
+  const domain = inboundReplyAddress?.includes("@") ? inboundReplyAddress.split("@")[1] : null;
+  const replyTo = domain && pitch?.id ? `replies+${pitch.id}@${domain}` : fromEmail;
 
   try {
     const portNum = profile?.smtp_port ? Number(profile.smtp_port) : 587;
@@ -159,8 +164,9 @@ export async function POST(request: Request) {
         : {}),
     });
     await transporter.sendMail({
-      from: replyTo,
+      from: fromEmail,
       to: toAddress,
+      replyTo,
       subject: sub,
       text,
       ...(htmlBody && { html: htmlBody }),

@@ -25,7 +25,7 @@ Tasks sorted into **already started** vs **new**, and **your tasks** (decisions/
 | Background worker (cron) | ✅ Done | Uses `follow_up_days` from profile; runs via `/api/cron/follow-ups` |
 | Email open tracking | ✅ Done | Pixel endpoint `/api/track/open` |
 | Click tracking (redirect endpoint) | ✅ Done | `/api/track/click`; links in pitch emails wrapped |
-| **Build inbound reply detection** | 🤝 **Your task** | Cloudflare Email Routing → webhook → Supabase (infra + webhook wiring) |
+| Build inbound reply detection | ✅ Webhook done | `POST /api/webhooks/inbound-reply`; you wire Cloudflare Email Worker → see docs/INBOUND-REPLY-WEBHOOK.md |
 | Define follow-up copy templates and tone options | ✅ Done | Tone (friendly/professional/brief) wired; AI + fallback templates; multi-follow-up support |
 | Wire dashboard to show sequence status, opens, replies | ✅ Done | Pitch rows show ✓ opened, ↗ clicked, ↻ follow-ups |
 
