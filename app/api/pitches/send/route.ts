@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { getPitchLimit } from "@/lib/billing";
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { podcast_id, subject, body, base_url: clientBaseUrl, template_id } = await request.json();
+  const { podcast_id, subject, body, base_url: clientBaseUrl, template_id, to_email: bodyToEmail } = await request.json();
   if (!podcast_id) return NextResponse.json({ error: "podcast_id required" }, { status: 400 });
 
   const sub = (subject ?? "").trim() || "Podcast guest pitch";
@@ -77,10 +78,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const toAddress = typeof podcast.host_email === "string" ? podcast.host_email.trim() : "";
+  const fromDb = typeof podcast.host_email === "string" ? podcast.host_email.trim() : "";
+  const fromBody = typeof bodyToEmail === "string" ? bodyToEmail.trim() : "";
+  const toAddress = fromBody || fromDb;
   if (!toAddress || !toAddress.includes("@")) {
     return NextResponse.json(
-      { error: "This podcast has no contact email on file. Add one on the podcast page.", podcast_id: podcast_id },
+      { error: "Enter a contact email in the “To email” field below, or add one on the podcast page.", podcast_id: podcast_id },
       { status: 400 }
     );
   }
@@ -178,6 +181,12 @@ export async function POST(request: Request) {
   }
 
   await supabase.from("target_list").delete().eq("user_id", user.id).eq("podcast_id", podcast_id);
+
+  // Save email to podcast if we had none (so follow-ups work)
+  if (!fromDb && fromBody) {
+    const admin = createAdminClient();
+    await admin.from("podcasts").update({ host_email: toAddress, updated_at: sentAt }).eq("id", podcast_id);
+  }
 
   return NextResponse.json({ ok: true });
 }

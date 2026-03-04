@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 const MAX_PER_REQUEST = 10;
 
-type PitchResult = { podcast_id: string; subject: string; body: string; template_id?: string };
+type PitchResult = { podcast_id: string; subject: string; body: string; template_id?: string; host_email?: string | null };
 
 function buildFallbackPitch(
   p: { id: string; title: string; host_name?: string | null },
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { data: podcasts } = await supabase.from("podcasts").select("id, title, description, category, host_name, topics").in("id", requestedIds);
+  const { data: podcasts } = await supabase.from("podcasts").select("id, title, description, category, host_name, topics, host_email").in("id", requestedIds);
 
   const name = profile?.full_name?.trim() || (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || user.email?.split("@")[0] || "Guest";
   const bio = profile?.bio?.trim() || "";
@@ -152,7 +152,7 @@ export async function POST(request: Request) {
     for (const p of podcasts) {
       const templ = findBestTemplate(p);
       if (templ) {
-        pitches.push({ podcast_id: p.id, subject: templ.subject, body: templ.body, template_id: templ.id });
+        pitches.push({ podcast_id: p.id, subject: templ.subject, body: templ.body, template_id: templ.id, host_email: p.host_email ?? null });
         continue;
       }
       const guestSection = [
@@ -197,18 +197,18 @@ Write the pitch in first person only. Output ONLY: first line "SUBJECT: ..." the
         // Ensure sign-off uses actual guest name, not "[Your Name]" or similar
         body = body.replace(/\n\s*Best,\s*\n\s*\[?Your Name\]?\s*$/i, `\n\nBest,\n${name}`);
         if (/\[?\s*Your\s+Name\s*\]?/i.test(body)) body = body.replace(/\[?\s*Your\s+Name\s*\]?/gi, name);
-        pitches.push({ podcast_id: p.id, subject, body } as PitchResult);
+        pitches.push({ podcast_id: p.id, subject, body, host_email: p.host_email ?? null } as PitchResult);
       } catch {
-        pitches.push(buildFallbackPitch(p, name, bio, expertise, audience, credentials, pastAppearances) as PitchResult);
+        pitches.push({ ...buildFallbackPitch(p, name, bio, expertise, audience, credentials, pastAppearances), host_email: p.host_email ?? null } as PitchResult);
       }
     }
   } else {
     for (const p of podcasts ?? []) {
       const templ = findBestTemplate(p);
       if (templ) {
-        pitches.push({ podcast_id: p.id, subject: templ.subject, body: templ.body, template_id: templ.id });
+        pitches.push({ podcast_id: p.id, subject: templ.subject, body: templ.body, template_id: templ.id, host_email: p.host_email ?? null });
       } else {
-        pitches.push(buildFallbackPitch(p, name, bio, expertise, audience, credentials, pastAppearances) as PitchResult);
+        pitches.push({ ...buildFallbackPitch(p, name, bio, expertise, audience, credentials, pastAppearances), host_email: p.host_email ?? null } as PitchResult);
       }
     }
   }

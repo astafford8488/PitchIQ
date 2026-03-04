@@ -26,7 +26,7 @@ export function PitchForm({ targetList }: { targetList: { id: string; podcast_id
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set(targetList.map((r) => r.podcast_id)));
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ podcast_id: string; subject: string; body: string; template_id?: string }[] | null>(null);
+  const [result, setResult] = useState<{ podcast_id: string; subject: string; body: string; template_id?: string; host_email?: string | null }[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   function toggle(podcastId: string) {
@@ -60,7 +60,7 @@ export function PitchForm({ targetList }: { targetList: { id: string; podcast_id
       <div className="space-y-6">
         <p className="text-[var(--muted)]">Review, copy, and mark as sent when you’ve emailed.</p>
         {result.map((p) => (
-          <PitchDraft key={p.podcast_id} podcastId={p.podcast_id} subject={p.subject} body={p.body} templateId={p.template_id} />
+          <PitchDraft key={p.podcast_id} podcastId={p.podcast_id} subject={p.subject} body={p.body} templateId={p.template_id} initialToEmail={p.host_email ?? ""} />
         ))}
         <button type="button" onClick={() => { setResult(null); }} className="border border-[var(--border)] px-4 py-2 rounded-lg hover:bg-[var(--surface)]">Generate again</button>
       </div>
@@ -93,8 +93,9 @@ export function PitchForm({ targetList }: { targetList: { id: string; podcast_id
   );
 }
 
-function PitchDraft({ podcastId, subject, body, templateId }: { podcastId: string; subject: string; body: string; templateId?: string }) {
+function PitchDraft({ podcastId, subject, body, templateId, initialToEmail }: { podcastId: string; subject: string; body: string; templateId?: string; initialToEmail?: string }) {
   const router = useRouter();
+  const [toEmail, setToEmail] = useState(initialToEmail ?? "");
   const [copied, setCopied] = useState(false);
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
@@ -122,6 +123,7 @@ function PitchDraft({ podcastId, subject, body, templateId }: { podcastId: strin
           body,
           template_id: templateId,
           base_url: typeof window !== "undefined" ? window.location.origin : undefined,
+          to_email: toEmail.trim() || undefined,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -142,6 +144,16 @@ function PitchDraft({ podcastId, subject, body, templateId }: { podcastId: strin
     <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
       <p className="font-medium mb-2">Subject: {subject}</p>
       <p className="text-sm text-[var(--muted)] whitespace-pre-wrap">{body}</p>
+      <label className="block mt-3">
+        <span className="text-sm text-[var(--muted)]">To email (required to send)</span>
+        <input
+          type="email"
+          value={toEmail}
+          onChange={(e) => setToEmail(e.target.value)}
+          placeholder="host@podcast.com or from their site / LinkedIn"
+          className="mt-1 w-full max-w-md bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1.5 text-sm text-[var(--text)] placeholder:text-[var(--muted)]"
+        />
+      </label>
       {error && (
         <p className="text-sm text-red-400 mt-2">
           {error}
@@ -155,7 +167,7 @@ function PitchDraft({ podcastId, subject, body, templateId }: { podcastId: strin
           {copied ? "Copied" : "Copy to clipboard"}
         </button>
         {!sent && (
-          <button type="button" onClick={sendPitch} disabled={sending} className="text-sm bg-[var(--accent)] text-[var(--bg)] px-3 py-1.5 rounded hover:bg-[var(--accent-hover)] disabled:opacity-50">
+          <button type="button" onClick={sendPitch} disabled={sending || !toEmail.trim()} className="text-sm bg-[var(--accent)] text-[var(--bg)] px-3 py-1.5 rounded hover:bg-[var(--accent-hover)] disabled:opacity-50">
             {sending ? "Sending…" : "Send pitch"}
           </button>
         )}
