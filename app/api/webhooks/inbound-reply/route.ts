@@ -8,6 +8,13 @@ function norm(email: string | null | undefined): string {
   return (email ?? "").trim().toLowerCase();
 }
 
+/** Extract address from "Display Name <email@x.com>" or plain "email@x.com". */
+function extractAddress(raw: string | null | undefined): string {
+  const s = (raw ?? "").trim();
+  const angle = /<([^>]+)>/.exec(s);
+  return (angle ? angle[1] : s).trim().toLowerCase();
+}
+
 /**
  * Inbound reply webhook. Call when a podcast host replies to a pitch.
  * Use with Cloudflare Email Workers, Resend Inbound, or any service that can
@@ -54,12 +61,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const fromNorm = norm(from);
-  const toNorm = norm(to);
+  const fromNorm = norm(extractAddress(from));
+  const toNorm = norm(extractAddress(to));
 
   const supabase = createAdminClient();
 
   // Option A: Reply-To was replies+<pitch.id>@domain — extract pitch id and update directly
+  // (to can be "Name <replies+uuid@domain>" from some providers)
   const plusMatch = toNorm.match(/^replies\+([0-9a-f-]{36})@/);
   if (plusMatch) {
     const pitchId = plusMatch[1];

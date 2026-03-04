@@ -37,18 +37,19 @@ Response: `{ "ok": true, "matched": true, "pitch_id": "...", "status": "interest
 
 ## Wiring from Cloudflare Email Workers
 
-In your Email Worker, when you receive an inbound email, forward to the webhook:
+In your Email Worker, when you receive an inbound email, forward to the webhook. Use the **envelope** recipient for `Email-To` when possible so Option A works (replies go to `replies+<pitch_id>@...`):
 
 ```js
 export default {
   async email(message, env, ctx) {
+    const to = message.to ?? message.headers?.get?.("to") ?? "";
     await fetch("https://pitchiq.live/api/webhooks/inbound-reply", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${env.INBOUND_REPLY_SECRET}`,
         "Email-From": message.from,
-        "Email-To": message.to,
+        "Email-To": to,
       },
     });
   },
@@ -58,7 +59,7 @@ export default {
 };
 ```
 
-(Store `INBOUND_REPLY_SECRET` in the Worker’s env and use the same value in Railway.)
+(Store `INBOUND_REPLY_SECRET` in the Worker’s env and use the same value in Railway.) The webhook accepts `To` in `"Name <replies+uuid@domain>"` form and will extract the address.
 
 ## Test
 
@@ -70,3 +71,8 @@ curl -X POST https://pitchiq.live/api/webhooks/inbound-reply \
 ```
 
 Expect `200` and `{"ok":true,"matched":false,...}` unless you have a matching pitch.
+
+## Troubleshooting
+
+- **Reply not marking “interested”:** Ensure the Worker sends the actual recipient address as `Email-To` (e.g. `replies+<pitch_id>@pitchiq.live`). If your provider only sends a display form like `"PitchIQ" <replies+...>`, the app now strips the angle-bracket part. Redeploy the app so the webhook has the fix.
+- **Sent pitches not in Pitches tab:** Use the same app URL (e.g. pitchiq.live) and account you used to send. If you sent from the deployed app but view on localhost (or vice versa), different Supabase envs can show different data. Confirm the send request returned 200 (e.g. Network tab).
