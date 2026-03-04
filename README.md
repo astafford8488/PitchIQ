@@ -2,7 +2,8 @@
 
 Next.js app with Supabase. **Landing page for guests; full app when logged in.**
 
-**New to this stack?** → See **SETUP-GUIDE.md** for a simple step-by-step walkthrough.
+**New to this stack?** → See **SETUP-GUIDE.md** for a simple step-by-step walkthrough.  
+**Deploying (Railway, etc.)?** → See **docs/DEPLOY-CHECKLIST.md** and verify with `GET /api/health`.
 
 ## Quick start
 
