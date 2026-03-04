@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type Row = {
   id: string;
@@ -98,6 +99,7 @@ function PitchDraft({ podcastId, subject, body, templateId }: { podcastId: strin
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorPodcastId, setErrorPodcastId] = useState<string | null>(null);
 
   function copy() {
     const text = `Subject: ${subject}\n\n${body}`;
@@ -108,6 +110,7 @@ function PitchDraft({ podcastId, subject, body, templateId }: { podcastId: strin
 
   async function sendPitch() {
     setError(null);
+    setErrorPodcastId(null);
     setSending(true);
     try {
       const res = await fetch("/api/pitches/send", {
@@ -123,7 +126,9 @@ function PitchDraft({ podcastId, subject, body, templateId }: { podcastId: strin
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError((data as { error?: string }).error || "Failed to send");
+        const err = (data as { error?: string; podcast_id?: string });
+        setError(err.error || "Failed to send");
+        setErrorPodcastId(err.podcast_id ?? null);
         return;
       }
       setSent(true);
@@ -137,7 +142,14 @@ function PitchDraft({ podcastId, subject, body, templateId }: { podcastId: strin
     <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
       <p className="font-medium mb-2">Subject: {subject}</p>
       <p className="text-sm text-[var(--muted)] whitespace-pre-wrap">{body}</p>
-      {error && <p className="text-sm text-red-400 mt-2">{error}</p>}
+      {error && (
+        <p className="text-sm text-red-400 mt-2">
+          {error}
+          {errorPodcastId && (
+            <> — <Link href={`/discover/${errorPodcastId}`} className="underline hover:no-underline">Add contact email</Link></>
+          )}
+        </p>
+      )}
       <div className="mt-3 flex gap-2">
         <button type="button" onClick={copy} className="text-sm border border-[var(--border)] px-3 py-1.5 rounded hover:bg-[var(--surface)]">
           {copied ? "Copied" : "Copy to clipboard"}

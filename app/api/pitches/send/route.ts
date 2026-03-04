@@ -80,7 +80,7 @@ export async function POST(request: Request) {
   const toAddress = typeof podcast.host_email === "string" ? podcast.host_email.trim() : "";
   if (!toAddress || !toAddress.includes("@")) {
     return NextResponse.json(
-      { error: "This podcast has no contact email on file. Add one or use the contact link instead." },
+      { error: "This podcast has no contact email on file. Add one on the podcast page.", podcast_id: podcast_id },
       { status: 400 }
     );
   }

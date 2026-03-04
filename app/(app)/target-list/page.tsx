@@ -9,7 +9,7 @@ export default async function TargetListPage() {
 
   const { data: rows } = await supabase
     .from("target_list")
-    .select("id, podcast_id, created_at, podcasts(id, title, description, category, host_name)")
+    .select("id, podcast_id, created_at, podcasts(id, title, description, category, host_name, host_email)")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -26,13 +26,19 @@ export default async function TargetListPage() {
           </div>
           <ul className="space-y-3">
             {rows.map((r) => {
-              const raw = r.podcasts as { id: string; title: string; description?: string; category?: string; host_name?: string } | { id: string; title: string; description?: string; category?: string; host_name?: string }[] | null;
+              const raw = r.podcasts as { id: string; title: string; description?: string; category?: string; host_name?: string; host_email?: string | null } | { id: string; title: string; description?: string; category?: string; host_name?: string; host_email?: string | null }[] | null;
               const p = Array.isArray(raw) ? raw[0] ?? null : raw;
+              const hasEmail = typeof p?.host_email === "string" && p.host_email.trim().length > 0;
               return (
                 <li key={r.id} className="flex items-center justify-between bg-[var(--surface)] border border-[var(--border)] rounded-lg px-4 py-3">
                   <div>
                     <Link href={`/discover/${p?.id}`} className="font-medium hover:underline">{p?.title ?? "Podcast"}</Link>
                     {p?.category && <span className="ml-2 text-xs text-[var(--muted)]">{p.category}</span>}
+                    {!hasEmail && (
+                      <span className="ml-2 text-xs text-amber-500">
+                        No contact email — <Link href={`/discover/${p?.id}`} className="underline hover:no-underline">add one</Link>
+                      </span>
+                    )}
                   </div>
                   <RemoveFromTargetButton podcastId={r.podcast_id} />
                 </li>
