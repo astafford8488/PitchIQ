@@ -9,7 +9,7 @@ export default async function PitchesPage() {
 
   const { data: pitches } = await supabase
     .from("pitches")
-    .select("id, subject, body, status, sent_at, opened_at, first_clicked_at, follow_ups_sent, created_at, podcasts(id, title, host_email, contact_url)")
+    .select("id, subject, body, status, sent_at, opened_at, first_clicked_at, follow_ups_sent, created_at, podcast_id, contact_id, podcasts(id, title, host_email, contact_url), contacts(id, name, outlet_name)")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -23,14 +23,20 @@ export default async function PitchesPage() {
       {pitches?.length ? (
         <ul className="space-y-4">
           {pitches.map((p) => {
-            const raw = p.podcasts as { id: string; title: string; host_email?: string; contact_url?: string } | { id: string; title: string; host_email?: string; contact_url?: string }[] | null;
-            const podcast = Array.isArray(raw) ? raw[0] ?? null : raw;
+            const rawPod = p.podcasts as { id: string; title: string; host_email?: string; contact_url?: string } | unknown[] | null;
+            const podcast = Array.isArray(rawPod) ? rawPod[0] ?? null : rawPod;
+            const rawContact = p.contacts as { id: string; name?: string | null; outlet_name?: string | null } | unknown[] | null;
+            const contact = Array.isArray(rawContact) ? rawContact[0] ?? null : rawContact;
+            const title = podcast?.title ?? (contact ? (contact.name || contact.outlet_name || "Contact") : "Pitch");
+            const isContact = !!(p as { contact_id?: string }).contact_id;
+            const targetId = isContact ? (contact as { id?: string })?.id : (podcast as { id?: string })?.id;
             return (
               <PitchRow
                 key={p.id}
                 pitchId={p.id}
-                podcastTitle={podcast?.title ?? "Podcast"}
-                podcastId={podcast?.id ?? ""}
+                podcastTitle={title}
+                podcastId={targetId ?? ""}
+                isContact={isContact}
                 subject={p.subject}
                 body={p.body}
                 status={p.status}

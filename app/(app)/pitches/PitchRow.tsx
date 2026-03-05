@@ -9,6 +9,7 @@ type Props = {
   pitchId: string;
   podcastTitle: string;
   podcastId: string;
+  isContact?: boolean;
   subject: string | null;
   body: string | null;
   status: string;
@@ -18,7 +19,7 @@ type Props = {
   followUpsSent?: number;
 };
 
-export function PitchRow({ pitchId, podcastTitle, podcastId, subject, body, status, sentAt, openedAt, clickedAt, followUpsSent }: Props) {
+export function PitchRow({ pitchId, podcastTitle, podcastId, isContact, subject, body, status, sentAt, openedAt, clickedAt, followUpsSent }: Props) {
   const router = useRouter();
   const [viewOpen, setViewOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -43,7 +44,7 @@ export function PitchRow({ pitchId, podcastTitle, podcastId, subject, body, stat
       <li className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <Link href={`/discover/${podcastId}`} className="font-semibold hover:underline">{podcastTitle}</Link>
+            {isContact ? <span className="font-semibold">{podcastTitle}</span> : <Link href={`/discover/${podcastId}`} className="font-semibold hover:underline">{podcastTitle}</Link>}
             {subject && <p className="text-sm text-[var(--muted)] mt-1">Subject: {subject}</p>}
             {sentAt && <p className="text-xs text-[var(--muted)]">Sent: {new Date(sentAt).toLocaleDateString()}</p>}
           </div>

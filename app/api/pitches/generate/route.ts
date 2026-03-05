@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 const MAX_PER_REQUEST = 10;
 
-type PitchResult = { podcast_id: string; subject: string; body: string; template_id?: string; host_email?: string | null };
+type PitchResult = { podcast_id?: string; contact_id?: string; subject: string; body: string; template_id?: string; host_email?: string | null };
 
 function buildFallbackPitch(
   p: { id: string; title: string; host_name?: string | null },
@@ -35,20 +35,34 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { podcast_ids } = await request.json();
-  if (!Array.isArray(podcast_ids) || podcast_ids.length === 0) {
-    return NextResponse.json({ error: "podcast_ids array required" }, { status: 400 });
+  const { podcast_ids, contact_ids } = await request.json();
+  const useContacts = Array.isArray(contact_ids) && contact_ids.length > 0;
+  const usePodcasts = Array.isArray(podcast_ids) && podcast_ids.length > 0;
+  if (!usePodcasts && !useContacts) {
+    return NextResponse.json({ error: "podcast_ids or contact_ids array required" }, { status: 400 });
   }
-  if (podcast_ids.length > MAX_PER_REQUEST) {
+  if (usePodcasts && useContacts) {
+    return NextResponse.json({ error: "Send either podcast_ids or contact_ids, not both" }, { status: 400 });
+  }
+
+  const requestedIds: string[] = useContacts ? contact_ids : podcast_ids;
+  if (requestedIds.length > MAX_PER_REQUEST) {
     return NextResponse.json({ error: `Max ${MAX_PER_REQUEST} pitches per request` }, { status: 400 });
   }
 
-  // Only allow generating for podcasts in the user's target list (prevents abuse / quota burn)
-  const { data: targetRows } = await supabase.from("target_list").select("podcast_id").eq("user_id", user.id);
-  const allowedPodcastIds = new Set((targetRows ?? []).map((r) => r.podcast_id));
-  const requestedIds = podcast_ids.filter((id: string) => allowedPodcastIds.has(id));
-  if (requestedIds.length === 0) {
-    return NextResponse.json({ error: "None of the selected podcasts are in your target list" }, { status: 400 });
+  let allowedIds: Set<string>;
+  if (useContacts) {
+    const { data: contactRows } = await supabase.from("contact_target_list").select("contact_id").eq("user_id", user.id);
+    allowedIds = new Set((contactRows ?? []).map((r) => r.contact_id));
+  } else {
+    const { data: targetRows } = await supabase.from("target_list").select("podcast_id").eq("user_id", user.id);
+    allowedIds = new Set((targetRows ?? []).map((r) => r.podcast_id));
+  }
+  const filteredIds = requestedIds.filter((id: string) => allowedIds.has(id));
+  if (filteredIds.length === 0) {
+    return NextResponse.json({
+      error: useContacts ? "None of the selected contacts are in your list" : "None of the selected podcasts are in your target list",
+    }, { status: 400 });
   }
 
   const { data: profile } = await supabase
@@ -74,20 +88,33 @@ export async function POST(request: Request) {
       { status: 429 }
     );
   }
-  if (used + requestedIds.length > limit) {
+  if (used + filteredIds.length > limit) {
     return NextResponse.json(
       { error: `Can only generate ${limit - used} more this month. Upgrade for more.` },
       { status: 429 }
     );
   }
 
-  const { data: podcasts } = await supabase.from("podcasts").select("id, title, description, category, host_name, topics, host_email").in("id", requestedIds);
-
   const name = profile?.full_name?.trim() || (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || user.email?.split("@")[0] || "Guest";
   const bio = profile?.bio?.trim() || "";
   const expertise = profile?.expertise_topics?.trim() || "";
   const audience = profile?.target_audience?.trim() || "";
   const credentials = profile?.credentials?.trim() || "";
+
+  if (useContacts) {
+    const { data: contacts } = await supabase.from("contacts").select("id, name, email, title, outlet_name").in("id", filteredIds);
+    const pitchResults: PitchResult[] = (contacts ?? []).map((c) => {
+      const greeting = c.name ? `Hi ${c.name},` : "Hi,";
+      const outlet = c.outlet_name || "your outlet";
+      const body = `${greeting}\n\nI thought your audience at ${outlet} might be interested in a story or segment. ${bio ? `${bio} ` : ""}${expertise ? `My expertise: ${expertise}. ` : ""}${credentials ? credentials : ""}\n\nI’d be happy to share more or jump on a call.\n\nBest,\n${name}`;
+      const subject = c.outlet_name ? `Story idea for ${c.outlet_name}` : "Story / segment idea";
+      return { contact_id: c.id, subject, body, host_email: c.email ?? null };
+    });
+    return NextResponse.json({ pitches: pitchResults });
+  }
+
+  const { data: podcasts } = await supabase.from("podcasts").select("id, title, description, category, host_name, topics, host_email").in("id", filteredIds);
+
   const linkedin = profile?.linkedin_url?.trim() || "";
   const speakingTopics = profile?.speaking_topics?.trim() || "";
   const pastAppearances = profile?.past_appearances?.trim() || "";

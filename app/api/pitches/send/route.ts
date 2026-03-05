@@ -17,8 +17,8 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { podcast_id, subject, body, base_url: clientBaseUrl, template_id, to_email: bodyToEmail } = await request.json();
-  if (!podcast_id) return NextResponse.json({ error: "podcast_id required" }, { status: 400 });
+  const { podcast_id, contact_id, subject, body, base_url: clientBaseUrl, template_id, to_email: bodyToEmail } = await request.json();
+  if (!podcast_id && !contact_id) return NextResponse.json({ error: "podcast_id or contact_id required" }, { status: 400 });
 
   const sub = (subject ?? "").trim() || "Podcast guest pitch";
   const text = (body ?? "").trim();
@@ -65,33 +65,55 @@ export async function POST(request: Request) {
     );
   }
 
-  const { data: podcast } = await supabase
-    .from("podcasts")
-    .select("host_email, title")
-    .eq("id", podcast_id)
-    .single();
-
-  if (!podcast) {
-    return NextResponse.json(
-      { error: "Podcast not found. It may have been removed." },
-      { status: 400 }
-    );
-  }
-
-  const fromDb = typeof podcast.host_email === "string" ? podcast.host_email.trim() : "";
+  let toAddress: string;
+  let fromDb = "";
   const fromBody = typeof bodyToEmail === "string" ? bodyToEmail.trim() : "";
-  const toAddress = fromBody || fromDb;
-  if (!toAddress || !toAddress.includes("@")) {
-    return NextResponse.json(
+
+  if (contact_id) {
+    const { data: contact } = await supabase
+      .from("contacts")
+      .select("email, name, outlet_name")
+      .eq("id", contact_id)
+      .single();
+    if (!contact) {
+      return NextResponse.json({ error: "Contact not found.", contact_id }, { status: 400 });
+    }
+    fromDb = typeof contact.email === "string" ? contact.email.trim() : "";
+    toAddress = fromBody || fromDb;
+    if (!toAddress || !toAddress.includes("@")) {
+      return NextResponse.json(
+        { error: "This contact has no email. Add one or use the To email field.", contact_id },
+        { status: 400 }
+      );
+    }
+  } else {
+    const { data: podcast } = await supabase
+      .from("podcasts")
+      .select("host_email, title")
+      .eq("id", podcast_id)
+      .single();
+
+    if (!podcast) {
+      return NextResponse.json(
+        { error: "Podcast not found. It may have been removed." },
+        { status: 400 }
+      );
+    }
+
+    fromDb = typeof podcast.host_email === "string" ? podcast.host_email.trim() : "";
+    toAddress = fromBody || fromDb;
+    if (!toAddress || !toAddress.includes("@")) {
+      return NextResponse.json(
       { error: "Enter a contact email in the “To email” field below, or add one on the podcast page.", podcast_id: podcast_id },
       { status: 400 }
-    );
+      );
+    }
   }
 
   const sentAt = new Date().toISOString();
   const insertPayload: Record<string, unknown> = {
     user_id: user.id,
-    podcast_id,
+    ...(podcast_id ? { podcast_id } : { contact_id }),
     subject: sub,
     body: text,
     sent_at: sentAt,
@@ -180,12 +202,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 
-  await supabase.from("target_list").delete().eq("user_id", user.id).eq("podcast_id", podcast_id);
-
-  // Save email to podcast if we had none (so follow-ups work)
-  if (!fromDb && fromBody) {
-    const admin = createAdminClient();
-    await admin.from("podcasts").update({ host_email: toAddress, updated_at: sentAt }).eq("id", podcast_id);
+  if (podcast_id) {
+    await supabase.from("target_list").delete().eq("user_id", user.id).eq("podcast_id", podcast_id);
+    if (!fromDb && fromBody) {
+      const admin = createAdminClient();
+      await admin.from("podcasts").update({ host_email: toAddress, updated_at: sentAt }).eq("id", podcast_id);
+    }
+  } else if (contact_id) {
+    await supabase.from("contact_target_list").delete().eq("user_id", user.id).eq("contact_id", contact_id);
+    if (!fromDb && fromBody) {
+      await supabase.from("contacts").update({ email: toAddress, updated_at: sentAt }).eq("id", contact_id);
+    }
   }
 
   return NextResponse.json({ ok: true });

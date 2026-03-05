@@ -46,9 +46,9 @@ Tasks sorted into **already started** vs **new**, and **your tasks** (decisions/
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Integrate media/journalist database (e.g. Muck Rack) | 🔨 New | Internal/colleague access first |
-| Integrate social collab database (creator directories) | 🔨 New | Internal first |
-| Integrate VC database (e.g. Harmonic, Crunchbase) | 🔨 New | Internal first |
+| Integrate media/journalist database (e.g. Muck Rack) | ✅ Scaffold | Contacts table, manual add, Discover → Media, pitch from contacts; Muck Rack API optional later |
+| Integrate social collab database (creator directories) | 🔨 Stub | Same contacts schema; add source + API when ready |
+| Integrate VC database (e.g. Harmonic, Crunchbase) | 🔨 Stub | Same contacts schema; add source + API when ready |
 | **Define scoring criteria per vertical** | 🧠 **Your task** | Differs from podcast scoring |
 | **Decide public rollout timing per vertical** | 🧠 **Your task** | Gated rollout |
 
@@ -65,26 +65,25 @@ Tasks sorted into **already started** vs **new**, and **your tasks** (decisions/
 
 ---
 
-## Summary: Your Tasks Only
+## Summary: Remaining (Your Tasks Only)
 
-These require your input (decisions) or your setup (infra):
+**Infra / setup (you do):**
+1. **Inbound replies** — Wire Cloudflare Email Routing so `replies@...` receives mail → Worker → `POST /api/webhooks/inbound-reply`. See `docs/INBOUND-REPLY-WEBHOOK.md`.
+2. **Dedicated sending (optional)** — Per-user subdomain on pitchiq.live; decide pricing for PitchIQ-managed.
 
-1. **Decide on dedicated sending infrastructure pricing** — add-on $X/month for PitchIQ-managed.
-2. **Set up dedicated sending domain infrastructure** — Cloudflare Email Routing, per-user subdomains.
-3. **Build inbound reply detection** — Cloudflare Email Routing → webhook; we’ll add the webhook endpoint.
-4. **Define follow-up copy templates and tone options** — write content; we wire into UI.
-5. **Define scoring criteria per vertical** — media, social, VC scoring rules.
-6. **Decide public rollout timing per vertical** — when to gate/ungate each.
+**Decisions (when you add verticals):**
+3. **Scoring criteria per vertical** — Media, social, VC rules.
+4. **Rollout timing** — When to gate/ungate each vertical.
 
 ---
 
-## Coding Plan (What We’re Implementing)
+## Coding Plan — Done
 
-1. Done: `follow_ups` table — run `supabase/follow-ups-schema.sql`
-2. Done: Sequence config UI — Settings → Follow-up sequences
-3. Done: Click tracking — `/api/track/click`; links in emails wrapped automatically
-4. Done: Dashboard/pitches — Upgrade prompt, opened/clicked/follow-up badges on rows
-5. Done: Stripe tiers + usage metering — `lib/billing.ts`; run `supabase/billing-tiers.sql`
-6. Deferred: Vertical DB integrations (needs API keys, scoring criteria)
+- Follow-ups table, sequence config UI, cron, tone options
+- Click + open tracking; inbound reply webhook (you wire Worker)
+- Dashboard, pitches list, upgrade prompt, Stripe tiers, usage metering
+- SMTP form, domain verifier, deploy checklist, health endpoint
 
-**Also run:** `supabase/click-tracking.sql`
+**Deferred (needs API keys + criteria):** Muck Rack, social collab DB, VC DB — placeholders in Settings → Data sources.
+
+**Migrations:** `supabase/run-all-migrations.sql`; optionally `supabase/click-tracking.sql`, `follow-ups-schema.sql`, `billing-tiers.sql` if not in run-all.

@@ -8,8 +8,9 @@ In **Supabase** → **SQL Editor** → **New query**, run:
 
 - **Base schema** (if starting fresh): `supabase/schema.sql`, then `supabase/seed.sql`.
 - **All optional columns** (so Settings and send work): `supabase/run-all-migrations.sql`.
+- **Vertical contacts** (media/VC/creators): `supabase/vertical-contacts.sql`.
 
-If you already ran schema + seed, you only need **run-all-migrations.sql**.
+If you already ran schema + seed, run **run-all-migrations.sql** then **vertical-contacts.sql**.
 
 ## 2. Railway (or your host): env vars
 
