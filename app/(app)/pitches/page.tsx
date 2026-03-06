@@ -23,13 +23,15 @@ export default async function PitchesPage() {
       {pitches?.length ? (
         <ul className="space-y-4">
           {pitches.map((p) => {
-            const rawPod = p.podcasts as { id: string; title: string; host_email?: string; contact_url?: string } | unknown[] | null;
-            const podcast = Array.isArray(rawPod) ? rawPod[0] ?? null : rawPod;
-            const rawContact = p.contacts as { id: string; name?: string | null; outlet_name?: string | null } | unknown[] | null;
-            const contact = Array.isArray(rawContact) ? rawContact[0] ?? null : rawContact;
+            type PodcastRow = { id: string; title: string; host_email?: string; contact_url?: string } | null;
+            type ContactRow = { id: string; name?: string | null; outlet_name?: string | null } | null;
+            const rawPod = p.podcasts as PodcastRow | PodcastRow[] | null;
+            const podcast: PodcastRow = Array.isArray(rawPod) ? rawPod[0] ?? null : rawPod;
+            const rawContact = p.contacts as ContactRow | ContactRow[] | null;
+            const contact: ContactRow = Array.isArray(rawContact) ? rawContact[0] ?? null : rawContact;
             const title = podcast?.title ?? (contact ? (contact.name || contact.outlet_name || "Contact") : "Pitch");
             const isContact = !!(p as { contact_id?: string }).contact_id;
-            const targetId = isContact ? (contact as { id?: string })?.id : (podcast as { id?: string })?.id;
+            const targetId = isContact ? contact?.id : podcast?.id;
             return (
               <PitchRow
                 key={p.id}
