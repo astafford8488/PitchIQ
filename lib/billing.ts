@@ -1,6 +1,6 @@
 /** Pitch limits per billing tier (per month). */
 export const TIER_LIMITS: Record<string, number> = {
-  free: 10,
+  free: 50,
   starter: 50,
   growth: 300,
 };
