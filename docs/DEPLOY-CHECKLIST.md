@@ -7,7 +7,7 @@ One place to get PitchIQ running without "column does not exist" or missing-env 
 In **Supabase** → **SQL Editor** → **New query**, run:
 
 - **Base schema** (if starting fresh): `supabase/schema.sql`, then `supabase/seed.sql`.
-- **All optional columns** (so Settings and send work): `supabase/run-all-migrations.sql`.
+- **All optional columns** (Settings, send, onboarding): `supabase/run-all-migrations.sql` (includes onboarding_completed_at so app doesn’t redirect to /onboarding forever).
 - **Vertical contacts** (media/VC/creators): `supabase/vertical-contacts.sql`.
 
 If you already ran schema + seed, run **run-all-migrations.sql** then **vertical-contacts.sql**.

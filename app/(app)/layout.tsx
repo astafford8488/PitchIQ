@@ -28,6 +28,7 @@ export default async function AppLayout({
         <nav className="flex items-center gap-6">
           <Link href="/discover" className="text-[var(--muted)] hover:text-[var(--text)]">Discover</Link>
           <Link href="/target-list" className="text-[var(--muted)] hover:text-[var(--text)]">Target list</Link>
+          <Link href="/discover/media" className="text-[var(--muted)] hover:text-[var(--text)]">Media</Link>
           <Link href="/pitches" className="text-[var(--muted)] hover:text-[var(--text)]">Pitches</Link>
           <Link href="/dashboard" className="text-[var(--muted)] hover:text-[var(--text)]">Dashboard</Link>
           <Link href="/help" className="text-[var(--muted)] hover:text-[var(--text)]">Help</Link>

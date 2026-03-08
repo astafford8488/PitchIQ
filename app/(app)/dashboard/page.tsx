@@ -100,10 +100,12 @@ export default async function DashboardPage() {
               const contact = Array.isArray(p.contacts) ? p.contacts[0] : p.contacts;
               const title = pod?.title ?? (contact ? (contact.name || contact.outlet_name) : null) ?? "Pitch";
               return (
-                <li key={p.id} className="flex items-center justify-between bg-[var(--surface)] border border-[var(--border)] rounded-lg px-4 py-3">
+                <li key={p.id}>
+                <Link href="/pitches" className="flex items-center justify-between bg-[var(--surface)] border border-[var(--border)] rounded-lg px-4 py-3 hover:bg-[var(--border)]/50 block">
                   <span className="font-medium">{title}</span>
                   <span className="text-sm text-[var(--muted)] capitalize">{p.status.replace("_", " ")}</span>
-                </li>
+                </Link>
+              </li>
               );
             })}
           </ul>
