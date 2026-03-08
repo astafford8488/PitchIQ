@@ -24,8 +24,14 @@ update public.profiles set pitch_limit_monthly = 10 where pitch_limit_monthly is
 -- Profiles: sending tier (optional, for future PitchIQ-managed)
 alter table public.profiles add column if not exists sending_tier text default 'own';
 
+-- Profiles: onboarding (layout redirects to /onboarding if missing)
+alter table public.profiles add column if not exists goals text;
+alter table public.profiles add column if not exists vertical_interests text;
+alter table public.profiles add column if not exists onboarding_completed_at timestamptz;
+
 -- Pitches: tracking and follow-ups
 alter table public.pitches
   add column if not exists opened_at timestamptz,
+  add column if not exists first_clicked_at timestamptz,
   add column if not exists follow_ups_sent integer not null default 0,
   add column if not exists follow_up_last_sent_at timestamptz;

@@ -31,7 +31,7 @@ export default async function DashboardPage() {
     .eq("user_id", user.id);
   const { data: recentPitches } = await supabase
     .from("pitches")
-    .select("id, status, created_at, podcasts(title)")
+    .select("id, status, created_at, podcast_id, contact_id, podcasts(title), contacts(name, outlet_name)")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(10);
@@ -95,12 +95,17 @@ export default async function DashboardPage() {
         <h2 className="text-lg font-semibold mb-3">Recent pitches</h2>
         {recentPitches?.length ? (
           <ul className="space-y-2">
-            {recentPitches.map((p) => (
-              <li key={p.id} className="flex items-center justify-between bg-[var(--surface)] border border-[var(--border)] rounded-lg px-4 py-3">
-                <span className="font-medium">{(Array.isArray(p.podcasts) ? p.podcasts[0] : p.podcasts)?.title ?? "Podcast"}</span>
-                <span className="text-sm text-[var(--muted)] capitalize">{p.status.replace("_", " ")}</span>
-              </li>
-            ))}
+            {recentPitches.map((p) => {
+              const pod = Array.isArray(p.podcasts) ? p.podcasts[0] : p.podcasts;
+              const contact = Array.isArray(p.contacts) ? p.contacts[0] : p.contacts;
+              const title = pod?.title ?? (contact ? (contact.name || contact.outlet_name) : null) ?? "Pitch";
+              return (
+                <li key={p.id} className="flex items-center justify-between bg-[var(--surface)] border border-[var(--border)] rounded-lg px-4 py-3">
+                  <span className="font-medium">{title}</span>
+                  <span className="text-sm text-[var(--muted)] capitalize">{p.status.replace("_", " ")}</span>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p className="text-[var(--muted)]">No pitches yet. Add podcasts to your target list and generate pitches.</p>

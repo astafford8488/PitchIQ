@@ -42,16 +42,21 @@ In your Email Worker, when you receive an inbound email, forward to the webhook.
 ```js
 export default {
   async email(message, env, ctx) {
-    const to = message.to ?? message.headers?.get?.("to") ?? "";
-    await fetch("https://pitchiq.live/api/webhooks/inbound-reply", {
+    // Use envelope recipient so we get replies+<pitch_id>@domain (not the display "To" header)
+    const from = (message.from ?? "").toString();
+    const to = (message.to ?? "").toString();
+    const url = "https://pitchiq.live/api/webhooks/inbound-reply";
+    const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${env.INBOUND_REPLY_SECRET}`,
-        "Email-From": message.from,
+        "Email-From": from,
         "Email-To": to,
       },
+      body: JSON.stringify({ from, to }),
     });
+    // Optional: log if needed for debugging (e.g. res.status, await res.text())
   },
   async fetch(request, env, ctx) {
     return new Response("OK", { status: 200 });

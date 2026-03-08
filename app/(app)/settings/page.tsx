@@ -43,6 +43,31 @@ export default async function SettingsPage() {
           }}
         />
       </section>
+
+      <section className="mt-10">
+        <h2 className="text-xl font-bold mb-4">Data sources</h2>
+        <p className="text-[var(--muted)] text-sm mb-4">
+          Where PitchIQ gets shows and contacts. More verticals coming soon.
+        </p>
+        <ul className="space-y-2 text-sm">
+          <li className="flex items-center gap-2">
+            <span className="text-green-500" aria-hidden>✓</span>
+            <span><strong>Podcasts</strong> — Discover, target list, pitch (active)</span>
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="text-green-500" aria-hidden>✓</span>
+            <span><strong>Media contacts</strong> — Discover → Media contacts, add & pitch (active)</span>
+          </li>
+          <li className="flex items-center gap-2 text-[var(--muted)]">
+            <span className="text-[var(--muted)]" aria-hidden>·</span>
+            <span>Creator / social collab directories — coming soon</span>
+          </li>
+          <li className="flex items-center gap-2 text-[var(--muted)]">
+            <span className="text-[var(--muted)]" aria-hidden>·</span>
+            <span>VC / investor DB (e.g. Harmonic, Crunchbase) — coming soon</span>
+          </li>
+        </ul>
+      </section>
     </div>
   );
 }
