@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { getPitchLimit, getUsageStats } from "@/lib/billing";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
+import { DashboardHelp } from "@/components/PageHelp";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -49,7 +50,10 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">Dashboard</h1>
-      <p className="text-[var(--muted)] mb-4">Overview of your podcast outreach.</p>
+      <p className="text-[var(--muted)] mb-4 flex items-center gap-2">
+        Overview of your podcast outreach.
+        <DashboardHelp />
+      </p>
 
       {usage.nearLimit && (
         <UpgradePrompt

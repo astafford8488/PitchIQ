@@ -34,7 +34,7 @@ export function Tooltip({
       {visible && (
         <span
           role="tooltip"
-          className={`absolute z-50 px-3 py-2 text-sm bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-lg max-w-xs whitespace-normal text-[var(--text)] ${placementClasses[placement]}`}
+          className={`absolute z-50 px-3 py-2 text-sm bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-lg min-w-[220px] max-w-sm whitespace-normal text-[var(--text)] ${placementClasses[placement]}`}
         >
           {content}
         </span>

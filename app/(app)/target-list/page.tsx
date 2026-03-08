@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { RemoveFromTargetButton } from "./RemoveFromTargetButton";
+import { TargetListHelp } from "@/components/PageHelp";
 
 export default async function TargetListPage() {
   const supabase = await createClient();
@@ -16,7 +17,10 @@ export default async function TargetListPage() {
   return (
     <div className="max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">Target list</h1>
-      <p className="text-[var(--muted)] mb-6">Podcasts you want to pitch. Remove any you no longer need; then generate pitches from here.</p>
+      <p className="text-[var(--muted)] mb-6 flex items-center gap-2">
+        Podcasts you want to pitch. Remove any you no longer need; then generate pitches from here.
+        <TargetListHelp />
+      </p>
 
       {rows?.length ? (
         <>

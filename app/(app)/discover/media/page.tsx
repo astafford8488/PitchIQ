@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { MediaContactsList } from "./MediaContactsList";
+import { MediaContactsHelp } from "@/components/PageHelp";
 
 export default async function MediaDiscoverPage() {
   const supabase = await createClient();
@@ -25,7 +26,10 @@ export default async function MediaDiscoverPage() {
     <div className="max-w-2xl mx-auto">
       <Link href="/discover" className="text-sm text-[var(--muted)] hover:text-[var(--text)] mb-4 inline-block">← Discover</Link>
       <h1 className="text-2xl font-bold mb-2">Media contacts</h1>
-      <p className="text-[var(--muted)] mb-6">Add journalists and media contacts to pitch. Add to your list, then generate pitches from Pitches → New.</p>
+      <p className="text-[var(--muted)] mb-6 flex items-center gap-2">
+        Add journalists and media contacts to pitch. Add to your list, then generate pitches from Pitches → New.
+        <MediaContactsHelp />
+      </p>
 
       <MediaContactsList
         contacts={contacts ?? []}
