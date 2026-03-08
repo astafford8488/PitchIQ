@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { PitchRow } from "./PitchRow";
 
+export const dynamic = "force-dynamic";
+
 export default async function PitchesPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -9,9 +11,20 @@ export default async function PitchesPage() {
 
   const { data: pitches } = await supabase
     .from("pitches")
-    .select("id, subject, body, status, sent_at, opened_at, first_clicked_at, follow_ups_sent, created_at, podcast_id, contact_id, podcasts(id, title, host_email, contact_url), contacts(id, name, outlet_name)")
+    .select("id, subject, body, status, sent_at, opened_at, first_clicked_at, follow_ups_sent, created_at, podcast_id, contact_id")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
+
+  const podcastIds = Array.from(new Set((pitches ?? []).map((p) => p.podcast_id).filter((id): id is string => Boolean(id))));
+  const contactIds = Array.from(new Set((pitches ?? []).map((p) => p.contact_id).filter((id): id is string => Boolean(id))));
+
+  const [podcastRows, contactRows] = await Promise.all([
+    podcastIds.length ? supabase.from("podcasts").select("id, title, host_email, contact_url").in("id", podcastIds) : { data: [] as { id: string; title: string; host_email?: string; contact_url?: string }[] },
+    contactIds.length ? supabase.from("contacts").select("id, name, outlet_name").in("id", contactIds) : { data: [] as { id: string; name?: string | null; outlet_name?: string | null }[] },
+  ]);
+
+  const podcastsById = new Map((podcastRows.data ?? []).map((r) => [r.id, r]));
+  const contactsById = new Map((contactRows.data ?? []).map((r) => [r.id, r]));
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -23,21 +36,17 @@ export default async function PitchesPage() {
       {pitches?.length ? (
         <ul className="space-y-4">
           {pitches.map((p) => {
-            type PodcastRow = { id: string; title: string; host_email?: string; contact_url?: string } | null;
-            type ContactRow = { id: string; name?: string | null; outlet_name?: string | null } | null;
-            const rawPod = p.podcasts as PodcastRow | PodcastRow[] | null;
-            const podcast: PodcastRow = Array.isArray(rawPod) ? rawPod[0] ?? null : rawPod;
-            const rawContact = p.contacts as ContactRow | ContactRow[] | null;
-            const contact: ContactRow = Array.isArray(rawContact) ? rawContact[0] ?? null : rawContact;
+            const podcast = p.podcast_id ? podcastsById.get(p.podcast_id) : null;
+            const contact = p.contact_id ? contactsById.get(p.contact_id) : null;
             const title = podcast?.title ?? (contact ? (contact.name || contact.outlet_name || "Contact") : "Pitch");
-            const isContact = !!(p as { contact_id?: string }).contact_id;
-            const targetId = isContact ? contact?.id : podcast?.id;
+            const isContact = !!p.contact_id;
+            const targetId = (isContact ? contact?.id : podcast?.id) ?? "";
             return (
               <PitchRow
                 key={p.id}
                 pitchId={p.id}
                 podcastTitle={title}
-                podcastId={targetId ?? ""}
+                podcastId={targetId}
                 isContact={isContact}
                 subject={p.subject}
                 body={p.body}
