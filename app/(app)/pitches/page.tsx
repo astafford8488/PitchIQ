@@ -9,11 +9,20 @@ export default async function PitchesPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: pitches } = await supabase
+  const { data: pitches, error: pitchesError } = await supabase
     .from("pitches")
     .select("id, subject, body, status, sent_at, opened_at, first_clicked_at, follow_ups_sent, created_at, podcast_id, contact_id")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
+
+  if (pitchesError) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold mb-2">Pitches</h1>
+        <p className="text-red-400">Could not load pitches: {pitchesError.message}. Check that all columns exist (run supabase/run-all-migrations.sql and vertical-contacts.sql if needed).</p>
+      </div>
+    );
+  }
 
   const podcastIds = Array.from(new Set((pitches ?? []).map((p) => p.podcast_id).filter((id): id is string => Boolean(id))));
   const contactIds = Array.from(new Set((pitches ?? []).map((p) => p.contact_id).filter((id): id is string => Boolean(id))));
