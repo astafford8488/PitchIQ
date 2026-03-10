@@ -46,15 +46,18 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: upsertError.message }, { status: 500 });
     }
 
-    // Verify write and return saved values
+    if (body.onboarding_completed_at) {
+      revalidatePath("/dashboard");
+      revalidatePath("/onboarding");
+    }
+    revalidatePath("/settings");
+    revalidatePath("/");
     const { data: saved } = await supabase
       .from("profiles")
       .select("from_email, sending_tier")
       .eq("id", user.id)
       .single();
 
-    revalidatePath("/settings");
-    revalidatePath("/");
     return NextResponse.json({ ok: true, profile: saved });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Server error";

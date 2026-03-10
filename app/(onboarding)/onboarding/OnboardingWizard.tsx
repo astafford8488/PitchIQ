@@ -31,6 +31,7 @@ export function OnboardingWizard({ initial }: { initial: Partial<FormData> }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>({
     full_name: initial?.full_name ?? "",
     bio: initial?.bio ?? "",
@@ -54,8 +55,10 @@ export function OnboardingWizard({ initial }: { initial: Partial<FormData> }) {
   async function handleNext() {
     if (step < STEPS.length - 1) {
       setStep((s) => s + 1);
+      setError(null);
       return;
     }
+    setError(null);
     setLoading(true);
     const payload = {
       ...form,
@@ -67,10 +70,13 @@ export function OnboardingWizard({ initial }: { initial: Partial<FormData> }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+    const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (res.ok) {
       router.push("/dashboard");
       router.refresh();
+    } else {
+      setError(data.error ?? "Something went wrong. Please try again.");
     }
   }
 
@@ -200,6 +206,7 @@ export function OnboardingWizard({ initial }: { initial: Partial<FormData> }) {
           </div>
         )}
 
+        {error && <p className="text-red-400 text-sm">{error}</p>}
         <div className="flex gap-3 pt-4">
           {step > 0 && (
             <button

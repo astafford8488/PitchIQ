@@ -17,7 +17,7 @@ Tasks sorted into **already started** vs **new**, and **your tasks** (decisions/
 
 | Task | Status | Notes |
 |------|--------|-------|
-| **Onboarding wizard (post-signup)** | ❌ Not done | Build multi-step wizard: profile basics, goals, vertical interests; set `onboarding_completed_at`; app layout can redirect to `/onboarding` when missing |
+| Onboarding wizard (post-signup) | ✅ Done | 3 steps: Basics, Goals & Topics, Past Media & Interests; sets `onboarding_completed_at`; app layout redirects to `/onboarding` when missing; profile upsert + revalidation; error handling |
 
 ---
 
@@ -85,8 +85,8 @@ Tasks sorted into **already started** vs **new**, and **your tasks** (decisions/
 ## Summary: Remaining
 
 **Coding (to do):**
-1. **Sign in with Google** — Enable in Supabase Auth; add button to login + signup.
-2. **Onboarding wizard** — Post-signup flow; profile + goals + verticals; set `onboarding_completed_at`.
+1. ~~**Sign in with Google**~~ — Done.
+2. ~~**Onboarding wizard**~~ — Done.
 3. **Stripe tiers** — Products/prices, checkout, webhook → profile tier; then usage metering + upgrade prompt are already stubbed.
 
 **Infra / setup (you do):**
@@ -101,7 +101,8 @@ Tasks sorted into **already started** vs **new**, and **your tasks** (decisions/
 
 ## Coding Plan — Done
 
-- Email/password auth; auth callback
+- Email/password + Google auth; auth callback; request-origin fix for Railway
+- Onboarding wizard (3 steps, profile + goals + verticals, redirect when incomplete)
 - Follow-ups table, sequence config UI, cron, tone options
 - Click + open tracking; inbound reply webhook (you wire Worker)
 - Dashboard, pitches list; SMTP form, domain verifier
