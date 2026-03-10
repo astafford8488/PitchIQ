@@ -4,6 +4,23 @@ Tasks sorted into **already started** vs **new**, and **your tasks** (decisions/
 
 ---
 
+## 1. Auth
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Email/password sign up & login | ✅ Done | Login + signup pages; auth callback for redirects |
+| **Sign in with Google** | ❌ Not done | Supabase Google provider + "Continue with Google" on login/signup |
+
+---
+
+## 2. Onboarding
+
+| Task | Status | Notes |
+|------|--------|-------|
+| **Onboarding wizard (post-signup)** | ❌ Not done | Build multi-step wizard: profile basics, goals, vertical interests; set `onboarding_completed_at`; app layout can redirect to `/onboarding` when missing |
+
+---
+
 ## 6. Email Infrastructure
 
 | Task | Status | Notes |
@@ -58,31 +75,38 @@ Tasks sorted into **already started** vs **new**, and **your tasks** (decisions/
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Wire Stripe to user tiers (free/starter/growth) | ✅ Done | `billing_tier` in profiles; active sub = starter; `lib/billing.ts` |
-| Build usage metering against pitch volume limits | ✅ Done | Monthly limits enforced in generate + send |
-| Build upgrade prompt when limits approached | ✅ Done | Dashboard shows when near 80% of limit |
+| **Wire Stripe to user tiers (free/starter/growth)** | ❌ Not done | Create products/prices in Stripe; checkout + webhook to set `billing_tier` / `stripe_subscription_status` on profile; `lib/billing.ts` has tier limits ready |
+| **Build usage metering against pitch volume limits** | 🔨 Stub | Code exists in lib/billing + generate/send; depends on tiers being wired |
+| **Build upgrade prompt when limits approached** | 🔨 Stub | Dashboard component exists; depends on tiers |
 | **Decide on dedicated sending infrastructure pricing tier** | 🧠 **Your task** | Add-on pricing |
 
 ---
 
-## Summary: Remaining (Your Tasks Only)
+## Summary: Remaining
+
+**Coding (to do):**
+1. **Sign in with Google** — Enable in Supabase Auth; add button to login + signup.
+2. **Onboarding wizard** — Post-signup flow; profile + goals + verticals; set `onboarding_completed_at`.
+3. **Stripe tiers** — Products/prices, checkout, webhook → profile tier; then usage metering + upgrade prompt are already stubbed.
 
 **Infra / setup (you do):**
-1. **Inbound replies** — Wire Cloudflare Email Routing so `replies@...` receives mail → Worker → `POST /api/webhooks/inbound-reply`. See `docs/INBOUND-REPLY-WEBHOOK.md`.
-2. **Dedicated sending (optional)** — Per-user subdomain on pitchiq.live; decide pricing for PitchIQ-managed.
+4. **Inbound replies** — Wire Cloudflare Email Routing → Worker → `POST /api/webhooks/inbound-reply`. See `docs/INBOUND-REPLY-WEBHOOK.md`.
+5. **Dedicated sending (optional)** — Per-user subdomain on pitchiq.live; decide pricing for PitchIQ-managed.
 
 **Decisions (when you add verticals):**
-3. **Scoring criteria per vertical** — Media, social, VC rules.
-4. **Rollout timing** — When to gate/ungate each vertical.
+6. **Scoring criteria per vertical** — Media, social, VC rules.
+7. **Rollout timing** — When to gate/ungate each vertical.
 
 ---
 
 ## Coding Plan — Done
 
+- Email/password auth; auth callback
 - Follow-ups table, sequence config UI, cron, tone options
 - Click + open tracking; inbound reply webhook (you wire Worker)
-- Dashboard, pitches list, upgrade prompt, Stripe tiers, usage metering
-- SMTP form, domain verifier, deploy checklist, health endpoint
+- Dashboard, pitches list; SMTP form, domain verifier
+- Deploy checklist, health endpoint
+- Billing: `lib/billing.ts` tier limits + profile columns; Stripe routes exist but tiers not wired
 
 **Deferred (needs API keys + criteria):** Muck Rack, social collab DB, VC DB — placeholders in Settings → Data sources.
 
