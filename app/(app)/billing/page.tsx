@@ -31,23 +31,41 @@ export default async function BillingPage() {
       )}
 
       {!isSubscribed && (
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
+        <div className="grid gap-6 sm:grid-cols-3">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 flex flex-col">
             <h2 className="text-lg font-semibold mb-1">Starter</h2>
-            <p className="text-[var(--muted)] text-sm mb-1">$20 / month</p>
-            <p className="text-[var(--muted)] text-sm mb-3">{TIER_LIMITS.starter} pitches</p>
+            <p className="text-2xl font-bold mb-1">$29.99<span className="text-sm font-normal text-[var(--muted)]">/month</span></p>
+            <p className="text-[var(--muted)] text-sm mb-4">{TIER_LIMITS.starter} pitches per month</p>
+            <ul className="text-sm text-[var(--muted)] space-y-2 mb-6 flex-1">
+              <li>Access to our huge podcast &amp; media database</li>
+              <li>AI-crafted pitches with customizable templates</li>
+              <li>AI profile feedback to strengthen your pitch</li>
+              <li>Open &amp; click tracking + auto follow-ups</li>
+            </ul>
             <SubscribeButton isSubscribed={false} tier="starter" />
           </div>
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 flex flex-col">
             <h2 className="text-lg font-semibold mb-1">Growth</h2>
-            <p className="text-[var(--muted)] text-sm mb-1">$50 / month</p>
-            <p className="text-[var(--muted)] text-sm mb-3">{TIER_LIMITS.growth} pitches</p>
+            <p className="text-2xl font-bold mb-1">$49.99<span className="text-sm font-normal text-[var(--muted)]">/month</span></p>
+            <p className="text-[var(--muted)] text-sm mb-4">{TIER_LIMITS.growth} pitches per month</p>
+            <ul className="text-sm text-[var(--muted)] space-y-2 mb-6 flex-1">
+              <li>Everything in Starter</li>
+              <li>2× pitch volume for more outreach</li>
+              <li>Full discovery &amp; target list tools</li>
+              <li>Tracking, follow-ups &amp; AI templates</li>
+            </ul>
             <SubscribeButton isSubscribed={false} tier="growth" />
           </div>
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 flex flex-col">
             <h2 className="text-lg font-semibold mb-1">Platinum</h2>
-            <p className="text-[var(--muted)] text-sm mb-1">$100 / month</p>
-            <p className="text-[var(--muted)] text-sm mb-3">{TIER_LIMITS.platinum} pitches</p>
+            <p className="text-2xl font-bold mb-1">$99.99<span className="text-sm font-normal text-[var(--muted)]">/month</span></p>
+            <p className="text-[var(--muted)] text-sm mb-4">{TIER_LIMITS.platinum} pitches per month</p>
+            <ul className="text-sm text-[var(--muted)] space-y-2 mb-6 flex-1">
+              <li>Everything in Growth</li>
+              <li>Maximum pitch volume for serious scale</li>
+              <li>Huge database, AI profile &amp; templates</li>
+              <li>Full tracking &amp; auto follow-ups</li>
+            </ul>
             <SubscribeButton isSubscribed={false} tier="platinum" />
           </div>
         </div>

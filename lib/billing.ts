@@ -1,9 +1,9 @@
 /** Pitch limits per billing tier (per month). Subscription required; free = no access. */
 export const TIER_LIMITS: Record<string, number> = {
   free: 0,        // no subscription = no pitches
-  starter: 100,   // $20/mo
-  growth: 200,    // $50/mo
-  platinum: 500,  // $100/mo
+  starter: 100,   // $29.99/mo
+  growth: 200,    // $49.99/mo
+  platinum: 500,  // $99.99/mo
   pro: 200,       // legacy: was middle tier, now Growth
 };
 
