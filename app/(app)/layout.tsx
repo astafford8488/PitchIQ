@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { AccountNav } from "./layout/AccountNav";
 import { DiscoverNav } from "./layout/DiscoverNav";
+import { isAdmin } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,9 @@ export default async function AppLayout({
           <Link href="/pitches" className="text-[var(--muted)] hover:text-[var(--text)]">Pitches</Link>
           <Link href="/dashboard" className="text-[var(--muted)] hover:text-[var(--text)]">Dashboard</Link>
           <Link href="/help" className="text-[var(--muted)] hover:text-[var(--text)]">Help</Link>
+          {isAdmin(user) && (
+            <Link href="/admin" className="text-[var(--accent)] hover:underline font-medium">Admin</Link>
+          )}
           <AccountNav />
           <form action="/logout" method="post">
             <button type="submit" className="text-sm text-[var(--muted)] hover:text-[var(--text)]">Log out</button>
