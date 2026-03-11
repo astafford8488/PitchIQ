@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { AccountNav } from "./layout/AccountNav";
+import { DiscoverNav } from "./layout/DiscoverNav";
 
 export const dynamic = "force-dynamic";
 
@@ -26,9 +27,8 @@ export default async function AppLayout({
       <header className="border-b border-[var(--border)] px-6 py-4 flex items-center justify-between">
         <Link href="/dashboard" className="text-xl font-semibold hover:opacity-90">PitchIQ</Link>
         <nav className="flex items-center gap-6">
-          <Link href="/discover" className="text-[var(--muted)] hover:text-[var(--text)]">Discover</Link>
+          <DiscoverNav />
           <Link href="/target-list" className="text-[var(--muted)] hover:text-[var(--text)]">Target list</Link>
-          <Link href="/discover/media" className="text-[var(--muted)] hover:text-[var(--text)]">Media</Link>
           <Link href="/pitches" className="text-[var(--muted)] hover:text-[var(--text)]">Pitches</Link>
           <Link href="/dashboard" className="text-[var(--muted)] hover:text-[var(--text)]">Dashboard</Link>
           <Link href="/help" className="text-[var(--muted)] hover:text-[var(--text)]">Help</Link>
