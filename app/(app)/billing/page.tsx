@@ -20,56 +20,76 @@ export default async function BillingPage() {
       <h1 className="text-2xl font-bold mb-2">Billing</h1>
       <p className="text-[var(--muted)] mb-6">Manage your subscription and pitch limits.</p>
 
-      {isSubscribed && (
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-2">Current plan</h2>
-          <p className="text-[var(--muted)] text-sm mb-4">
-            You’re on <strong className="text-[var(--text)]">{currentTier === "platinum" ? "Platinum" : currentTier === "growth" || currentTier === "pro" ? "Growth" : "Starter"}</strong> — {TIER_LIMITS[currentTier] ?? 0} pitches per month.
-          </p>
-          <SubscribeButton isSubscribed={true} />
-        </div>
-      )}
-
-      {!isSubscribed && (
-        <div className="grid gap-6 sm:grid-cols-3">
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 flex flex-col">
-            <h2 className="text-lg font-semibold mb-1">Starter</h2>
-            <p className="text-2xl font-bold mb-1">$29.99<span className="text-sm font-normal text-[var(--muted)]">/month</span></p>
-            <p className="text-[var(--muted)] text-sm mb-4">{TIER_LIMITS.starter} pitches per month</p>
-            <ul className="text-sm text-[var(--muted)] space-y-2 mb-6 flex-1">
-              <li>Access to our huge podcast &amp; media database</li>
-              <li>AI-crafted pitches with customizable templates</li>
-              <li>AI profile feedback to strengthen your pitch</li>
-              <li>Open &amp; click tracking + auto follow-ups</li>
-            </ul>
-            <SubscribeButton isSubscribed={false} tier="starter" />
-          </div>
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 flex flex-col">
-            <h2 className="text-lg font-semibold mb-1">Growth</h2>
-            <p className="text-2xl font-bold mb-1">$49.99<span className="text-sm font-normal text-[var(--muted)]">/month</span></p>
-            <p className="text-[var(--muted)] text-sm mb-4">{TIER_LIMITS.growth} pitches per month</p>
-            <ul className="text-sm text-[var(--muted)] space-y-2 mb-6 flex-1">
-              <li>Everything in Starter</li>
-              <li>2× pitch volume for more outreach</li>
-              <li>Full discovery &amp; target list tools</li>
-              <li>Tracking, follow-ups &amp; AI templates</li>
-            </ul>
-            <SubscribeButton isSubscribed={false} tier="growth" />
-          </div>
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 flex flex-col">
-            <h2 className="text-lg font-semibold mb-1">Platinum</h2>
-            <p className="text-2xl font-bold mb-1">$99.99<span className="text-sm font-normal text-[var(--muted)]">/month</span></p>
-            <p className="text-[var(--muted)] text-sm mb-4">{TIER_LIMITS.platinum} pitches per month</p>
-            <ul className="text-sm text-[var(--muted)] space-y-2 mb-6 flex-1">
-              <li>Everything in Growth</li>
-              <li>Maximum pitch volume for serious scale</li>
-              <li>Huge database, AI profile &amp; templates</li>
-              <li>Full tracking &amp; auto follow-ups</li>
-            </ul>
-            <SubscribeButton isSubscribed={false} tier="platinum" />
-          </div>
-        </div>
-      )}
+      <div className="grid gap-6 sm:grid-cols-3">
+        {[
+          {
+            tier: "starter" as const,
+            name: "Starter",
+            price: "$29.99",
+            limit: TIER_LIMITS.starter,
+            features: [
+              "Access to our huge podcast & media database",
+              "AI-crafted pitches with customizable templates",
+              "AI profile feedback to strengthen your pitch",
+              "Open & click tracking + auto follow-ups",
+            ],
+          },
+          {
+            tier: "growth" as const,
+            name: "Growth",
+            price: "$49.99",
+            limit: TIER_LIMITS.growth,
+            features: [
+              "Everything in Starter",
+              "2× pitch volume for more outreach",
+              "Full discovery & target list tools",
+              "Tracking, follow-ups & AI templates",
+            ],
+          },
+          {
+            tier: "platinum" as const,
+            name: "Platinum",
+            price: "$99.99",
+            limit: TIER_LIMITS.platinum,
+            features: [
+              "Everything in Growth",
+              "Maximum pitch volume for serious scale",
+              "Huge database, AI profile & templates",
+              "Full tracking & auto follow-ups",
+            ],
+          },
+        ].map((plan) => {
+          const isCurrent = isSubscribed && (currentTier === plan.tier || (plan.tier === "growth" && currentTier === "pro"));
+          return (
+            <div
+              key={plan.tier}
+              className={`rounded-lg p-6 flex flex-col ${
+                isCurrent
+                  ? "border-2 border-[var(--accent)] bg-[var(--accent)]/10"
+                  : "border border-[var(--border)] bg-[var(--surface)]"
+              }`}
+            >
+              {isCurrent && (
+                <span className="inline-block text-xs font-semibold text-[var(--accent)] uppercase tracking-wide mb-2">
+                  Current plan
+                </span>
+              )}
+              <h2 className="text-lg font-semibold mb-1">{plan.name}</h2>
+              <p className="text-2xl font-bold mb-1">{plan.price}<span className="text-sm font-normal text-[var(--muted)]">/month</span></p>
+              <p className="text-[var(--muted)] text-sm mb-4">{plan.limit} pitches per month</p>
+              <ul className="text-sm text-[var(--muted)] space-y-2 mb-6 flex-1">
+                {plan.features.map((f, i) => (
+                  <li key={i}>{f}</li>
+                ))}
+              </ul>
+              <SubscribeButton
+                isSubscribed={isCurrent}
+                tier={plan.tier}
+              />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
