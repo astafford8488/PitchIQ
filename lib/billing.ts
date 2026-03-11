@@ -1,8 +1,10 @@
-/** Pitch limits per billing tier (per month). */
+/** Pitch limits per billing tier (per month). Starter (low), Growth (mid), Platinum (high). */
 export const TIER_LIMITS: Record<string, number> = {
   free: 50,
-  starter: 50,
-  growth: 300,
+  starter: 100,   // $20/mo
+  growth: 200,    // $50/mo
+  platinum: 500,  // $100/mo
+  pro: 200,       // legacy: was middle tier, now Growth
 };
 
 export function getPitchLimit(tier: string | null | undefined): number {
