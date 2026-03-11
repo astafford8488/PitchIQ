@@ -54,6 +54,7 @@ export async function POST(request: Request) {
       cancel_url: `${baseUrl}/billing`,
       customer_email: user.email ?? undefined,
       metadata: { user_id: user.id },
+      allow_promotion_codes: true,
     });
 
     if (!session.url) {
