@@ -1,10 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { computeMatchIQ, type LNPodcast, type ProfileForScoring } from "@/lib/match-iq";
+import { getSearchLimit } from "@/lib/billing";
 
 export const dynamic = "force-dynamic";
 
 const LISTEN_NOTES_BASE = "https://listen-api.listennotes.com/api/v2";
+
+function todayUtc(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export async function GET(request: Request) {
   try {
@@ -14,6 +19,40 @@ export async function GET(request: Request) {
 
     const key = process.env.LISTEN_NOTES_API_KEY;
     if (!key) return NextResponse.json({ error: "Listen Notes API key not configured" }, { status: 503 });
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("onboarding_completed_at, stripe_subscription_status, billing_tier, from_email, smtp_server, expertise_topics, speaking_topics, target_audience, goals, vertical_interests")
+      .eq("id", user.id)
+      .single();
+
+    const isActive = profile?.stripe_subscription_status === "active";
+    const tier = isActive ? (profile?.billing_tier ?? "starter") : "free";
+    if (!profile?.onboarding_completed_at) {
+      return NextResponse.json({ error: "Complete your profile in Settings before searching." }, { status: 402 });
+    }
+    if (!isActive) {
+      return NextResponse.json({ error: "An active subscription is required to search. Subscribe in Billing." }, { status: 402 });
+    }
+    if (!profile?.from_email?.trim() || !profile?.smtp_server?.trim()) {
+      return NextResponse.json({ error: "Set up your email (From address and SMTP) in Settings before searching." }, { status: 402 });
+    }
+
+    const usageDate = todayUtc();
+    const { data: usageRow } = await supabase
+      .from("search_usage")
+      .select("count")
+      .eq("user_id", user.id)
+      .eq("usage_date", usageDate)
+      .maybeSingle();
+    const used = usageRow?.count ?? 0;
+    const limit = getSearchLimit(tier);
+    if (used >= limit) {
+      return NextResponse.json(
+        { error: `Daily search limit reached (${limit} per day). Resets at midnight UTC. Upgrade for more.` },
+        { status: 429 }
+      );
+    }
 
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q")?.trim() || "";
@@ -39,17 +78,10 @@ export async function GET(request: Request) {
     if (updateFreqMin) params.set("update_freq_min", updateFreqMin);
     if (updateFreqMax) params.set("update_freq_max", updateFreqMax);
 
-    const [lnRes, { data: profile }] = await Promise.all([
-      fetch(`${LISTEN_NOTES_BASE}/search?${params}`, {
-        headers: { "X-ListenAPI-Key": key },
-        next: { revalidate: 0 },
-      }),
-      supabase
-        .from("profiles")
-        .select("expertise_topics, speaking_topics, target_audience, goals, vertical_interests")
-        .eq("id", user.id)
-        .single(),
-    ]);
+    const lnRes = await fetch(`${LISTEN_NOTES_BASE}/search?${params}`, {
+      headers: { "X-ListenAPI-Key": key },
+      next: { revalidate: 0 },
+    });
 
     const text = await lnRes.text();
     if (!lnRes.ok) {
@@ -79,6 +111,11 @@ export async function GET(request: Request) {
       return { ...p, match_iq: score, match_reasoning: reasoning };
     });
     scored.sort((a, b) => (b.match_iq ?? 0) - (a.match_iq ?? 0));
+
+    await supabase.from("search_usage").upsert(
+      { user_id: user.id, usage_date: usageDate, count: used + 1 },
+      { onConflict: "user_id,usage_date" }
+    );
 
     return NextResponse.json({
       results: scored,

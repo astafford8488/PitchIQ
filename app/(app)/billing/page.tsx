@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { SubscribeButton } from "../dashboard/SubscribeButton";
-import { TIER_LIMITS } from "@/lib/billing";
+import { TIER_LIMITS, SEARCH_LIMITS } from "@/lib/billing";
 
 export default async function BillingPage() {
   const supabase = await createClient();
@@ -28,6 +28,7 @@ export default async function BillingPage() {
             price: "$29.99",
             limit: TIER_LIMITS.starter,
             features: [
+              `${SEARCH_LIMITS.starter} database searches per day`,
               "Access to our huge podcast & media database",
               "AI-crafted pitches with customizable templates",
               "AI profile feedback to strengthen your pitch",
@@ -40,6 +41,7 @@ export default async function BillingPage() {
             price: "$49.99",
             limit: TIER_LIMITS.growth,
             features: [
+              `${SEARCH_LIMITS.growth} database searches per day`,
               "Everything in Starter",
               "2× pitch volume for more outreach",
               "Full discovery & target list tools",
@@ -52,6 +54,7 @@ export default async function BillingPage() {
             price: "$99.99",
             limit: TIER_LIMITS.platinum,
             features: [
+              `${SEARCH_LIMITS.platinum} database searches per day`,
               "Everything in Growth",
               "Maximum pitch volume for serious scale",
               "Huge database, AI profile & templates",

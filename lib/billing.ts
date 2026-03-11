@@ -7,8 +7,21 @@ export const TIER_LIMITS: Record<string, number> = {
   pro: 200,       // legacy: was middle tier, now Growth
 };
 
+/** Daily database search limits per tier (podcast discovery, etc.). */
+export const SEARCH_LIMITS: Record<string, number> = {
+  free: 0,
+  starter: 5,
+  growth: 10,
+  platinum: 50,
+  pro: 10,
+};
+
 export function getPitchLimit(tier: string | null | undefined): number {
   return TIER_LIMITS[tier ?? "free"] ?? TIER_LIMITS.free;
+}
+
+export function getSearchLimit(tier: string | null | undefined): number {
+  return SEARCH_LIMITS[tier ?? "free"] ?? SEARCH_LIMITS.free;
 }
 
 /** Returns { used, limit, remaining, nearLimit } for the current month. */

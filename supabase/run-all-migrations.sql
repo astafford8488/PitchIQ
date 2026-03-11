@@ -15,9 +15,12 @@ alter table public.profiles
   add column if not exists max_follow_ups integer default 1,
   add column if not exists follow_up_tone text default 'friendly';
 
--- Profiles: billing
+-- Profiles: billing + Stripe
 alter table public.profiles add column if not exists billing_tier text;
 alter table public.profiles add column if not exists pitch_limit_monthly integer;
+alter table public.profiles add column if not exists stripe_customer_id text;
+alter table public.profiles add column if not exists stripe_subscription_id text;
+alter table public.profiles add column if not exists stripe_subscription_status text;
 update public.profiles set billing_tier = 'free' where billing_tier is null;
 update public.profiles set pitch_limit_monthly = 10 where pitch_limit_monthly is null;
 
@@ -35,3 +38,18 @@ alter table public.pitches
   add column if not exists first_clicked_at timestamptz,
   add column if not exists follow_ups_sent integer not null default 0,
   add column if not exists follow_up_last_sent_at timestamptz;
+
+-- Daily search usage (tier limits)
+create table if not exists public.search_usage (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  usage_date date not null default (current_date at time zone 'utc'),
+  count int not null default 0,
+  primary key (user_id, usage_date)
+);
+alter table public.search_usage enable row level security;
+drop policy if exists "Users can read own search_usage" on public.search_usage;
+create policy "Users can read own search_usage" on public.search_usage for select using (auth.uid() = user_id);
+drop policy if exists "Users can insert own search_usage" on public.search_usage;
+create policy "Users can insert own search_usage" on public.search_usage for insert with check (auth.uid() = user_id);
+drop policy if exists "Users can update own search_usage" on public.search_usage;
+create policy "Users can update own search_usage" on public.search_usage for update using (auth.uid() = user_id);
