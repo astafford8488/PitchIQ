@@ -14,19 +14,27 @@ export function UpgradePrompt({ used, limit, isSubscribed }: Props) {
 
   if (isSubscribed && !nearLimit && !atLimit) return null;
 
+  const subscriptionRequired = !isSubscribed && limit === 0;
+
   return (
     <div className="mb-6 p-4 rounded-lg border border-[var(--border)] bg-[var(--surface)]">
-      <p className="text-sm font-medium mb-1">
-        Pitches this month: {used} / {limit}
-      </p>
-      {atLimit && (
+      {subscriptionRequired ? (
+        <p className="text-sm font-medium mb-1">A subscription is required to generate and send pitches.</p>
+      ) : (
+        <p className="text-sm font-medium mb-1">
+          Pitches this month: {used} / {limit}
+        </p>
+      )}
+      {atLimit && !subscriptionRequired && (
         <p className="text-sm text-[var(--muted)] mb-3">You&apos;ve reached your monthly limit. Upgrade for more.</p>
       )}
       {nearLimit && !atLimit && (
         <p className="text-sm text-[var(--muted)] mb-3">You&apos;re approaching your limit. Upgrade to send more.</p>
       )}
       {!isSubscribed && (
-        <p className="text-sm text-[var(--muted)] mb-3">Subscribe for higher limits and full access.</p>
+        <p className="text-sm text-[var(--muted)] mb-3">
+          {subscriptionRequired ? "Subscribe to get started." : "Subscribe for higher limits and full access."}
+        </p>
       )}
       <Link
         href="/billing"

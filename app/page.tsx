@@ -63,8 +63,8 @@ export default async function HomePage() {
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-[var(--border)] px-6 py-4 flex items-center justify-between">
         <span className="text-xl font-semibold">PitchIQ</span>
-        <nav className="flex gap-4">
-          <Link href="/login" className="text-[var(--muted)] hover:text-[var(--text)]">Log in</Link>
+        <nav className="flex items-center gap-3">
+          <Link href="/login" className="border border-[var(--border)] px-4 py-2 rounded-lg font-medium hover:bg-[var(--surface)] text-[var(--text)]">Log in</Link>
           <Link href="/signup" className="bg-[var(--accent)] text-[var(--bg)] px-4 py-2 rounded-lg font-medium hover:bg-[var(--accent-hover)]">Sign up</Link>
         </nav>
       </header>

@@ -71,7 +71,14 @@ export async function POST(request: Request) {
     .eq("id", user.id)
     .single();
 
-  const tier = profile?.stripe_subscription_status === "active" ? (profile?.billing_tier ?? "starter") : "free";
+  const isActive = profile?.stripe_subscription_status === "active";
+  const tier = isActive ? (profile?.billing_tier ?? "starter") : "free";
+  if (!isActive) {
+    return NextResponse.json(
+      { error: "A subscription is required to generate pitches. Subscribe at Billing." },
+      { status: 402 }
+    );
+  }
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
