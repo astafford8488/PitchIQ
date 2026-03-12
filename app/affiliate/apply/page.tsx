@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { JoinAffiliateForm } from "@/app/join-affiliate/JoinAffiliateForm";
 
-export default function AffiliateApplyRedirect() {
-  redirect("/join-affiliate");
+export default function AffiliateApplyPage() {
+  return <JoinAffiliateForm />;
 }

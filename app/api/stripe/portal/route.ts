@@ -1,17 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { getRequestOrigin } from "@/lib/request-origin";
 
 export const dynamic = "force-dynamic";
-
-function getBaseUrl(request: Request): string {
-  try {
-    const url = new URL(request.url);
-    return url.origin;
-  } catch {
-    return "http://localhost:3001";
-  }
-}
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -40,7 +32,7 @@ export async function POST(request: Request) {
   }
 
   const stripe = new Stripe(secretKey, { apiVersion: "2026-01-28.clover" });
-  const baseUrl = getBaseUrl(request);
+  const baseUrl = getRequestOrigin(request);
 
   try {
     const session = await stripe.billingPortal.sessions.create({

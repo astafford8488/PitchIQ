@@ -53,3 +53,35 @@ drop policy if exists "Users can insert own search_usage" on public.search_usage
 create policy "Users can insert own search_usage" on public.search_usage for insert with check (auth.uid() = user_id);
 drop policy if exists "Users can update own search_usage" on public.search_usage;
 create policy "Users can update own search_usage" on public.search_usage for update using (auth.uid() = user_id);
+
+-- Affiliate program (admin-only access via service role)
+create table if not exists public.affiliate_applications (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  email text not null,
+  phone text,
+  audience_size text,
+  audience_platforms text,
+  website_or_handles text,
+  how_heard text,
+  notes text,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'denied')),
+  created_at timestamptz not null default now(),
+  reviewed_at timestamptz,
+  reviewed_by uuid references auth.users(id)
+);
+create table if not exists public.affiliates (
+  id uuid primary key default gen_random_uuid(),
+  application_id uuid references public.affiliate_applications(id),
+  name text not null,
+  email text not null,
+  affiliate_code text not null unique,
+  total_signups int not null default 0,
+  total_earned_cents int not null default 0,
+  total_paid_out_cents int not null default 0,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_affiliate_applications_status on public.affiliate_applications(status);
+create index if not exists idx_affiliates_code on public.affiliates(affiliate_code);
+alter table public.affiliate_applications enable row level security;
+alter table public.affiliates enable row level security;
