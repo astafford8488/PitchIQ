@@ -167,10 +167,7 @@ export function DiscoverSearch() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="flex items-center justify-between gap-4 mb-2">
-        <h1 className="text-2xl font-bold">Discover podcasts</h1>
-        <Link href="/discover/media" className="text-sm text-[var(--accent)] hover:underline">Media contacts</Link>
-      </div>
+      <h1 className="text-2xl font-bold mb-2">Discover podcasts</h1>
       <p className="text-[var(--muted)] mb-4 flex items-center gap-2">
         Search Listen Notes. Results are ranked by Match IQ based on your profile.
         <HelpTrigger content="Match IQ scores how well each podcast fits your profile: topics, recency, guest interviews." />

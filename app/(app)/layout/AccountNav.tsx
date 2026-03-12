@@ -7,6 +7,7 @@ const links = [
   { href: "/profile", label: "Profile" },
   { href: "/settings", label: "Settings" },
   { href: "/billing", label: "Billing" },
+  { href: "/affiliate", label: "Affiliate program" },
 ];
 
 export function AccountNav() {
