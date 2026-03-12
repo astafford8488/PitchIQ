@@ -97,7 +97,7 @@ export default async function AffiliatePage() {
         </p>
         <p className="text-[var(--muted)] text-sm mb-6">You&apos;ll be taken to an application form (stored in our system—no email app).</p>
         <Link
-          href="/affiliate/apply"
+          href="/join-affiliate"
           className="inline-block bg-[var(--accent)] text-[var(--bg)] px-8 py-4 rounded-lg font-semibold hover:bg-[var(--accent-hover)] transition-colors"
         >
           Open application form

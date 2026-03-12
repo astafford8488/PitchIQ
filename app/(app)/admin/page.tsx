@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPitchLimit } from "@/lib/billing";
+import { AdminApplicationsTable } from "./AdminApplicationsTable";
 
 export const dynamic = "force-dynamic";
 
@@ -23,12 +24,69 @@ function monthStartUtc(): string {
   return d.toISOString();
 }
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  const { tab = "users" } = await searchParams;
   const admin = createAdminClient();
+
+  if (tab === "affiliates") {
+    const { data: affiliates } = await admin.from("affiliates").select("*").order("created_at", { ascending: false });
+    return (
+      <div className="space-y-6">
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden">
+          <h2 className="text-lg font-semibold p-4 border-b border-[var(--border)]">Affiliates ({affiliates?.length ?? 0})</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[var(--border)] bg-[var(--border)]/30">
+                  <th className="text-left p-3 font-medium">Name</th>
+                  <th className="text-left p-3 font-medium">Email</th>
+                  <th className="text-left p-3 font-medium">Code</th>
+                  <th className="text-left p-3 font-medium">Signups</th>
+                  <th className="text-left p-3 font-medium">Earned</th>
+                  <th className="text-left p-3 font-medium">Paid out</th>
+                  <th className="text-left p-3 font-medium">Joined</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(affiliates ?? []).map((a) => (
+                  <tr key={a.id} className="border-b border-[var(--border)] hover:bg-[var(--border)]/20">
+                    <td className="p-3">{a.name}</td>
+                    <td className="p-3">{a.email}</td>
+                    <td className="p-3 font-mono">{a.affiliate_code}</td>
+                    <td className="p-3">{a.total_signups}</td>
+                    <td className="p-3">${(a.total_earned_cents / 100).toFixed(2)}</td>
+                    <td className="p-3">${(a.total_paid_out_cents / 100).toFixed(2)}</td>
+                    <td className="p-3 text-[var(--muted)]">{new Date(a.created_at).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {(affiliates?.length ?? 0) === 0 && (
+            <p className="p-6 text-[var(--muted)]">No affiliates yet. Approve applications to add them.</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (tab === "applications") {
+    const { data: applications } = await admin.from("affiliate_applications").select("*").order("created_at", { ascending: false });
+    return (
+      <div className="space-y-6">
+        <p className="text-[var(--muted)] text-sm">Application form: /join-affiliate (hidden, no nav link)</p>
+        <AdminApplicationsTable applications={applications ?? []} />
+      </div>
+    );
+  }
+
   const { data: authData } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
   const users = authData?.users ?? [];
   const ids = users.map((u) => u.id);
-
   const monthStart = monthStartUtc();
 
   const [profilesRes, pitchesRes] = await Promise.all([
