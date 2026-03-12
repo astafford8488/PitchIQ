@@ -92,17 +92,18 @@ export default async function AffiliatePage() {
       {/* CTA */}
       <section className="text-center border border-[var(--border)] rounded-xl bg-[var(--surface)] p-10">
         <h2 className="text-2xl font-bold mb-2">Get your referral link</h2>
-        <p className="text-[var(--muted)] mb-6 max-w-xl mx-auto">
-          We&apos;re onboarding affiliates now. Drop your details and we&apos;ll send you a unique link, tracking, and payout info.
+        <p className="text-[var(--muted)] mb-4 max-w-xl mx-auto">
+          Fill out a short form; we&apos;ll review and send you a unique code, link, and payout info.
         </p>
-        <a
-          href="mailto:admin@pitchiq.live?subject=PitchIQ%20Affiliate%20Signup"
+        <p className="text-[var(--muted)] text-sm mb-6">You&apos;ll be taken to an application form (stored in our system—no email app).</p>
+        <Link
+          href="/affiliate/apply"
           className="inline-block bg-[var(--accent)] text-[var(--bg)] px-8 py-4 rounded-lg font-semibold hover:bg-[var(--accent-hover)] transition-colors"
         >
-          Apply to join the program
-        </a>
-        <p className="text-[var(--muted)] text-sm mt-4">
-          Or email <strong className="text-[var(--text)]">admin@pitchiq.live</strong>
+          Open application form
+        </Link>
+        <p className="text-[var(--muted)] text-sm mt-6">
+          Prefer to email? <a href="mailto:admin@pitchiq.live" className="text-[var(--accent)] hover:underline">admin@pitchiq.live</a>
         </p>
       </section>
 
