@@ -2,6 +2,8 @@
 
 Automated onboarding sequence for verified users, with Resend delivery and optional webhook tracking.
 
+> If you're using Loops for visual editing/workflows, see `docs/LOOPS-ONBOARDING-SETUP.md`.
+
 ## What is implemented
 
 - Auto-enroll verified users on first successful auth callback.

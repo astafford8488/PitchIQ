@@ -2,6 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { getRequestOrigin } from "@/lib/request-origin";
+import {
+  getOnboardingProvider,
+  isLoopsOnboardingEnabled,
+  syncVerifiedUserToLoops,
+} from "@/lib/loops";
 
 export const dynamic = "force-dynamic";
 
@@ -19,8 +24,30 @@ export async function GET(request: Request) {
         data: { user },
       } = await supabase.auth.getUser();
       if (user?.id && user.email && user.email_confirmed_at) {
+        const provider = getOnboardingProvider();
+        if (isLoopsOnboardingEnabled() && (provider === "loops" || provider === "both")) {
+          try {
+            const admin = createAdminClient();
+            const { data: profile } = await admin
+              .from("profiles")
+              .select("full_name")
+              .eq("id", user.id)
+              .maybeSingle();
+            await syncVerifiedUserToLoops({
+              userId: user.id,
+              email: user.email,
+              fullName: profile?.full_name ?? null,
+              verifiedAt: user.email_confirmed_at,
+            });
+          } catch {
+            // Never block auth callback on Loops sync failures.
+          }
+        }
+
         try {
-          await enrollOnboardingSequence(user.id, user.email);
+          if (provider === "internal" || provider === "both") {
+            await enrollOnboardingSequence(user.id, user.email);
+          }
         } catch {
           // Never block auth callback on onboarding sequence failures.
         }
