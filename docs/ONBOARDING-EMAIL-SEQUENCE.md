@@ -1,30 +1,104 @@
 # Onboarding email sequence
 
-This project now supports an automated onboarding sequence for newly verified users.
+Automated onboarding sequence for verified users, with Resend delivery and optional webhook tracking.
 
-## What it does
+## What is implemented
 
-- Enrolls verified users once (on first successful auth callback).
-- Schedules 4 emails:
+- Auto-enroll verified users on first successful auth callback.
+- Queue four onboarding steps:
   - `welcome_0h`
   - `setup_smtp_1d`
   - `first_pitch_3d`
   - `follow_up_7d`
-- Sends due emails from cron via Resend.
-- Respects profile email preferences (`onboarding_emails_enabled`, `unsubscribed_at`).
+- Send pending emails from cron via Resend.
+- Backfill endpoint to enroll existing verified users.
+- Preview endpoint to review template HTML before sending.
+- Profile-level preferences (`onboarding_emails_enabled`, `marketing_emails_enabled`, `unsubscribed_at`).
+- Resend webhook ingest endpoint and event storage.
 
-## Code paths
+## Where to edit email content
 
-- Enrollment: `app/auth/callback/route.ts`
-- Cron sender: `app/api/cron/onboarding-emails/route.ts`
-- Preferences API: `app/api/email/preferences/route.ts`
-- SQL migration: `supabase/onboarding-email-sequence.sql`
+Use this file (not route handlers):
+
+- `lib/onboarding-email-templates.ts`
+
+To add images:
+
+1. Upload image to a public URL (Cloudflare R2, S3, Webflow asset, etc.).
+2. Set one of:
+   - `ONBOARDING_EMAIL_IMAGE_URL` (global image for all emails)
+   - `ONBOARDING_EMAIL_IMAGE_WELCOME`
+   - `ONBOARDING_EMAIL_IMAGE_SETUP_SMTP`
+   - `ONBOARDING_EMAIL_IMAGE_FIRST_PITCH`
+   - `ONBOARDING_EMAIL_IMAGE_FOLLOW_UP`
+
+## Required SQL
+
+Run both in Supabase SQL Editor:
+
+1. `supabase/onboarding-email-sequence.sql`
+2. `supabase/onboarding-email-tracking.sql`
+
+## Review before sending (recommended)
+
+Preview each template in browser:
+
+- `/api/cron/onboarding-preview?secret=YOUR_CRON_SECRET&template=welcome`
+- `/api/cron/onboarding-preview?secret=YOUR_CRON_SECRET&template=setup_smtp`
+- `/api/cron/onboarding-preview?secret=YOUR_CRON_SECRET&template=first_pitch`
+- `/api/cron/onboarding-preview?secret=YOUR_CRON_SECRET&template=follow_up`
+
+Optional query params:
+
+- `name=Andrew` to preview merge values
+
+The response header `X-Template-Subject` contains the subject line.
+
+## Backfill existing users (verified)
+
+Dry run first:
+
+- `POST /api/cron/onboarding-backfill?secret=YOUR_CRON_SECRET`
+
+Execute:
+
+- `POST /api/cron/onboarding-backfill?secret=YOUR_CRON_SECRET&dry_run=false`
+
+If you want immediate sends for all steps (for testing only):
+
+- `POST /api/cron/onboarding-backfill?secret=YOUR_CRON_SECRET&dry_run=false&send_now=true`
 
 ## Scheduler
 
-Call `GET` or `POST`:
+Create a cron job calling:
 
 - `/api/cron/onboarding-emails?secret=YOUR_CRON_SECRET`
-  - or `Authorization: Bearer YOUR_CRON_SECRET`
 
-Recommended schedule: every 10-15 minutes.
+Method: `GET` or `POST`  
+Frequency: every 10-15 minutes
+
+## Resend webhook tracking
+
+Endpoint:
+
+- `POST /api/webhooks/resend?secret=YOUR_RESEND_WEBHOOK_SECRET`
+
+Env:
+
+- `RESEND_WEBHOOK_SECRET=...`
+
+In Resend dashboard, configure webhook events:
+
+- `email.sent`
+- `email.delivered`
+- `email.bounced`
+- `email.opened`
+- `email.clicked`
+
+Raw webhook data is stored in:
+
+- `public.resend_webhook_events`
+
+Per-email lifecycle fields are updated on:
+
+- `public.onboarding_email_events`

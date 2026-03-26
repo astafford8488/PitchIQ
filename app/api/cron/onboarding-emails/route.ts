@@ -1,6 +1,11 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import {
+  getAppUrlFromEnv,
+  renderOnboardingTemplate,
+  type OnboardingTemplateKey,
+} from "@/lib/onboarding-email-templates";
 
 export const dynamic = "force-dynamic";
 
@@ -13,76 +18,6 @@ function checkCronAuth(request: Request): boolean {
   if (auth?.startsWith("Bearer ")) return auth.slice(7) === secret;
   const url = new URL(request.url);
   return url.searchParams.get("secret") === secret;
-}
-
-function getAppUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
-    process.env.RAILWAY_PUBLIC_DOMAIN?.trim()?.replace(/^/, "https://") ||
-    "http://localhost:3001"
-  );
-}
-
-function renderTemplate(templateKey: string, fullName: string | null, appUrl: string) {
-  const firstName = fullName?.trim()?.split(/\s+/)[0] ?? "there";
-  const settingsUrl = `${appUrl}/settings`;
-  const onboardingUrl = `${appUrl}/onboarding`;
-  const pitchesUrl = `${appUrl}/pitches`;
-
-  const footer = `
-    <p style="margin:24px 0 0;color:#666;font-size:13px;line-height:1.5">
-      You're receiving this onboarding sequence because you created a PitchIQ account.
-      You can manage email preferences in <a href="${settingsUrl}" style="color:#e8b86d">Settings</a>.
-    </p>
-  `;
-
-  if (templateKey === "welcome") {
-    return {
-      subject: "Welcome to PitchIQ - your first wins this week",
-      html: `
-        <p>Hey ${firstName},</p>
-        <p>Welcome to PitchIQ. You can land your first podcast outreach this week with a simple flow:</p>
-        <ol>
-          <li>Complete your profile</li>
-          <li>Find podcasts in your niche</li>
-          <li>Generate and send your first pitch</li>
-        </ol>
-        <p><a href="${onboardingUrl}" style="color:#e8b86d">Start onboarding</a></p>
-        ${footer}
-      `,
-    };
-  }
-  if (templateKey === "setup_smtp") {
-    return {
-      subject: "Set up sending in 2 minutes",
-      html: `
-        <p>Hey ${firstName},</p>
-        <p>Your next unlock is email sending. Add SMTP in settings so pitches can go out from your own address.</p>
-        <p><a href="${settingsUrl}" style="color:#e8b86d">Open Email Settings</a></p>
-        ${footer}
-      `,
-    };
-  }
-  if (templateKey === "first_pitch") {
-    return {
-      subject: "Ready for your first pitch?",
-      html: `
-        <p>Hey ${firstName},</p>
-        <p>Pick 3 relevant shows, generate drafts, and send one today. Momentum beats perfection.</p>
-        <p><a href="${pitchesUrl}" style="color:#e8b86d">Open Pitches</a></p>
-        ${footer}
-      `,
-    };
-  }
-  return {
-    subject: "Quick check-in from PitchIQ",
-    html: `
-      <p>Hey ${firstName},</p>
-      <p>If you want, reply and share your niche - we can suggest a better first outreach angle.</p>
-      <p><a href="${onboardingUrl}" style="color:#e8b86d">Continue onboarding</a></p>
-      ${footer}
-    `,
-  };
 }
 
 export async function GET(request: Request) {
@@ -106,7 +41,7 @@ async function run(request: Request) {
   const fromEmail = process.env.ONBOARDING_EMAIL_FROM?.trim() || process.env.RESEND_FROM_EMAIL?.trim() || "PitchIQ <admin@pitchiq.live>";
   const resend = new Resend(resendKey);
   const supabase = createAdminClient();
-  const appUrl = getAppUrl();
+  const appUrl = getAppUrlFromEnv();
 
   const { data: events, error } = await supabase
     .from("onboarding_email_events")
@@ -154,7 +89,8 @@ async function run(request: Request) {
       continue;
     }
 
-    const { subject, html } = renderTemplate(String(event.template_key ?? "welcome"), profile?.full_name ?? null, appUrl);
+    const key = String(event.template_key ?? "welcome") as OnboardingTemplateKey;
+    const { subject, html } = renderOnboardingTemplate(key, profile?.full_name ?? null, appUrl);
     try {
       const result = await resend.emails.send({
         from: fromEmail,
@@ -168,6 +104,7 @@ async function run(request: Request) {
         .update({
           status: "sent",
           sent_at: new Date().toISOString(),
+          last_event_type: "email.sent",
           resend_message_id: messageId,
           attempts: (event.attempts ?? 0) + 1,
           updated_at: new Date().toISOString(),
