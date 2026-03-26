@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resent, setResent] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -36,6 +37,29 @@ export default function LoginPage() {
     });
     setLoading(false);
     if (err) setError(err.message);
+  }
+
+  async function handleResendVerification() {
+    setError(null);
+    setResent(false);
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail || !trimmedEmail.includes("@")) {
+      setError("Enter your email, then click resend.");
+      return;
+    }
+    setLoading(true);
+    const res = await fetch("/api/auth/resend-verification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: trimmedEmail }),
+    });
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    setLoading(false);
+    if (!res.ok) {
+      setError(data.error ?? "Could not resend verification email.");
+      return;
+    }
+    setResent(true);
   }
 
   return (
@@ -79,6 +103,18 @@ export default function LoginPage() {
         <p className="mt-6 text-center text-sm text-[var(--muted)]">
           No account? <Link href="/signup" className="text-[var(--accent)] hover:underline">Sign up</Link>
         </p>
+        <p className="mt-3 text-center text-sm text-[var(--muted)]">
+          Not verified yet?{" "}
+          <button
+            type="button"
+            onClick={handleResendVerification}
+            disabled={loading}
+            className="text-[var(--accent)] hover:underline disabled:opacity-50"
+          >
+            Resend verification email
+          </button>
+        </p>
+        {resent && <p className="mt-2 text-center text-sm text-[var(--muted)]">Verification email sent.</p>}
       </div>
     </div>
   );

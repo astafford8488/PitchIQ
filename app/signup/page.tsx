@@ -12,6 +12,7 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [resent, setResent] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -22,7 +23,10 @@ export default function SignupPage() {
     const { error: err } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name } },
+      options: {
+        data: { full_name: name },
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+      },
     });
     setLoading(false);
     if (err) {
@@ -30,6 +34,24 @@ export default function SignupPage() {
       return;
     }
     setSent(true);
+  }
+
+  async function handleResendVerification() {
+    setError(null);
+    setResent(false);
+    setLoading(true);
+    const res = await fetch("/api/auth/resend-verification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    setLoading(false);
+    if (!res.ok) {
+      setError(data.error ?? "Could not resend verification email.");
+      return;
+    }
+    setResent(true);
   }
 
   async function handleGoogleSignIn() {
@@ -49,6 +71,16 @@ export default function SignupPage() {
         <div className="w-full max-w-sm text-center">
           <h1 className="text-2xl font-bold mb-2">Check your email</h1>
           <p className="text-[var(--muted)]">We sent a confirmation link to {email}. Click it to log in.</p>
+          <button
+            type="button"
+            onClick={handleResendVerification}
+            disabled={loading}
+            className="mt-4 text-[var(--accent)] hover:underline disabled:opacity-50"
+          >
+            {loading ? "Resending..." : "Resend verification email"}
+          </button>
+          {resent && <p className="mt-2 text-sm text-[var(--muted)]">Verification email sent.</p>}
+          {error && <p className="mt-2 text-red-400 text-sm">{error}</p>}
           <Link href="/login" className="mt-6 inline-block text-[var(--accent)] hover:underline">Back to log in</Link>
         </div>
       </div>
