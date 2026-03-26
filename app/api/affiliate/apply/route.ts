@@ -50,7 +50,11 @@ export async function POST(request: Request) {
     const { error } = await admin.from("affiliate_applications").insert(record);
     if (error) {
       console.error("affiliate apply insert", error.code, error.message, error.details);
-      return NextResponse.json({ error: "Failed to submit. Try again." }, { status: 500 });
+      const message =
+        process.env.NODE_ENV === "production"
+          ? "Failed to submit. Try again."
+          : `Failed to submit: ${error.code} ${error.message}`;
+      return NextResponse.json({ error: message }, { status: 500 });
     }
     return NextResponse.json({ ok: true });
   } catch (e) {
