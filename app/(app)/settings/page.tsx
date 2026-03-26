@@ -13,7 +13,7 @@ export default async function SettingsPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("smtp_server, smtp_port, smtp_security, smtp_username, smtp_password, from_email, follow_up_days, max_follow_ups, follow_up_tone")
+    .select("smtp_server, smtp_port, smtp_security, smtp_username, smtp_password, from_email, follow_up_days, max_follow_ups, follow_up_tone, onboarding_emails_enabled, marketing_emails_enabled")
     .eq("id", user.id)
     .single();
 
@@ -40,6 +40,10 @@ export default async function SettingsPage() {
             follow_up_days: profile?.follow_up_days ?? 7,
             max_follow_ups: profile?.max_follow_ups ?? 1,
             follow_up_tone: profile?.follow_up_tone ?? "friendly",
+          }}
+          preferencesInitial={{
+            onboarding_emails_enabled: profile?.onboarding_emails_enabled ?? true,
+            marketing_emails_enabled: profile?.marketing_emails_enabled ?? true,
           }}
         />
       </section>

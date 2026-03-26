@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { SmtpForm } from "../profile/SmtpForm";
 import { DomainVerifier } from "./DomainVerifier";
+import { EmailPreferencesCard } from "./EmailPreferencesCard";
 
 type SmtpInitial = {
   smtp_server: string;
@@ -21,7 +22,20 @@ type FollowUpInitial = {
   follow_up_tone: string;
 };
 
-export function EmailSettings({ smtpInitial, followUpInitial }: { smtpInitial: SmtpInitial; followUpInitial: FollowUpInitial }) {
+type PreferencesInitial = {
+  onboarding_emails_enabled: boolean;
+  marketing_emails_enabled: boolean;
+};
+
+export function EmailSettings({
+  smtpInitial,
+  followUpInitial,
+  preferencesInitial,
+}: {
+  smtpInitial: SmtpInitial;
+  followUpInitial: FollowUpInitial;
+  preferencesInitial: PreferencesInitial;
+}) {
   const [fromEmail, setFromEmail] = useState(smtpInitial.from_email ?? "");
 
   return (
@@ -60,6 +74,10 @@ export function EmailSettings({ smtpInitial, followUpInitial }: { smtpInitial: S
           initial={smtpInitial}
           followUpInitial={followUpInitial}
           onFromEmailChange={setFromEmail}
+        />
+        <EmailPreferencesCard
+          onboardingInitial={preferencesInitial.onboarding_emails_enabled}
+          marketingInitial={preferencesInitial.marketing_emails_enabled}
         />
         <DomainVerifier fromEmail={fromEmail} />
       </div>
